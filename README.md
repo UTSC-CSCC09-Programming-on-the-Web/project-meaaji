@@ -2,7 +2,7 @@
 
 ## 👥 Team Members
 
-- Aashir Mallik – aashir.mallik@mail.utoronto.ca (utorid: to be completed)
+- Aashir Mallik – aashir.mallik@mail.utoronto.ca (utorid: mallika9)
 - Mealad Ebadi – mealad.ebadi@mail.utoronto.ca (utorid: ebadimea)
 - Ji Sung Han – jishan.han@mail.utoronto.ca (utorid: hanji11)
 
