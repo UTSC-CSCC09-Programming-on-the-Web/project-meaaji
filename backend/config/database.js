@@ -1,12 +1,13 @@
-const { Pool } = require('pg');
-require('dotenv').config();
+const { Pool } = require("pg");
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, "../../.env") });
 
 // Database configuration
 const dbConfig = {
-  user: process.env.DB_USER || 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'Draw2PlayDB',
-  password: process.env.DB_PASSWORD || '',
+  user: process.env.DB_USER || "postgres",
+  host: process.env.DB_HOST || "localhost",
+  database: process.env.DB_NAME || "Draw2PlayDB",
+  password: process.env.DB_PASSWORD || "",
   port: process.env.DB_PORT || 5432,
   // Connection pool settings
   max: 20, // Maximum number of clients in the pool
@@ -18,12 +19,12 @@ const dbConfig = {
 const pool = new Pool(dbConfig);
 
 // Test the database connection
-pool.on('connect', () => {
-  console.log('Connected to Draw2PlayDB PostgreSQL database');
+pool.on("connect", () => {
+  console.log("Connected to Draw2PlayDB PostgreSQL database");
 });
 
-pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
+pool.on("error", (err) => {
+  console.error("Unexpected error on idle client", err);
   process.exit(-1);
 });
 
@@ -33,10 +34,10 @@ const query = async (text, params) => {
   try {
     const res = await pool.query(text, params);
     const duration = Date.now() - start;
-    console.log('Executed query', { text, duration, rows: res.rowCount });
+    console.log("Executed query", { text, duration, rows: res.rowCount });
     return res;
   } catch (error) {
-    console.error('Database query error:', error);
+    console.error("Database query error:", error);
     throw error;
   }
 };
@@ -46,25 +47,27 @@ const getClient = async () => {
   const client = await pool.connect();
   const query = client.query.bind(client);
   const release = client.release.bind(client);
-  
+
   // Set a timeout of 5 seconds, after which we will log this client's last query
   const timeout = setTimeout(() => {
-    console.error('A client has been checked out for more than 5 seconds!');
-    console.error(`The last executed query on this client was: ${client.lastQuery}`);
+    console.error("A client has been checked out for more than 5 seconds!");
+    console.error(
+      `The last executed query on this client was: ${client.lastQuery}`,
+    );
   }, 5000);
-  
+
   client.query = (...args) => {
     client.lastQuery = args;
     return query(...args);
   };
-  
+
   client.release = () => {
     clearTimeout(timeout);
     client.query = query;
     client.release = release;
     return release();
   };
-  
+
   return client;
 };
 
@@ -72,5 +75,5 @@ module.exports = {
   pool,
   query,
   getClient,
-  dbConfig
-}; 
+  dbConfig,
+};

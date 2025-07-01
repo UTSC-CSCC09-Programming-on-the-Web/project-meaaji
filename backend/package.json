@@ -10,35 +10,44 @@
     "migrate": "node migrations/run-migrations.js",
     "seed": "node migrations/seed-data.js"
   },
-  "keywords": ["drawing", "storybook", "game", "ai", "children", "education"],
+  "keywords": [
+    "drawing",
+    "storybook",
+    "game",
+    "ai",
+    "children",
+    "education"
+  ],
   "author": "Aashir Mallik, Mealad Ebadi, Ji Sung Han",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
-    "pg": "^8.11.3",
-    "pg-pool": "^3.6.1",
-    "dotenv": "^16.3.1",
-    "cors": "^2.8.5",
-    "helmet": "^7.1.0",
-    "express-rate-limit": "^7.1.5",
-    "socket.io": "^4.7.4",
-    "bullmq": "^4.15.1",
-    "redis": "^4.6.10",
-    "passport": "^0.7.0",
-    "passport-google-oauth20": "^2.0.0",
-    "express-session": "^1.17.3",
-    "stripe": "^14.7.0",
     "bcryptjs": "^2.4.3",
+    "bullmq": "^4.15.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "express-session": "^1.17.3",
+    "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
+    "node-fetch": "^3.3.2",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "pg": "^8.11.3",
+    "pg-pool": "^3.6.1",
+    "redis": "^4.6.10",
+    "socket.io": "^4.7.4",
+    "stripe": "^14.25.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2",
     "jest": "^29.7.0",
+    "nodemon": "^3.0.2",
     "supertest": "^6.3.3"
   },
   "engines": {
     "node": ">=18.0.0"
   }
-} 
+}

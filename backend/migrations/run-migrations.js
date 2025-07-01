@@ -1,6 +1,6 @@
-const fs = require('fs');
-const path = require('path');
-const { query } = require('../config/database');
+const fs = require("fs");
+const path = require("path");
+const { query } = require("../config/database");
 
 // Create migrations table to track which migrations have been run
 const createMigrationsTable = async () => {
@@ -12,9 +12,9 @@ const createMigrationsTable = async () => {
         executed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log('✓ Migrations table created/verified');
+    console.log("✓ Migrations table created/verified");
   } catch (error) {
-    console.error('Error creating migrations table:', error);
+    console.error("Error creating migrations table:", error);
     throw error;
   }
 };
@@ -22,10 +22,13 @@ const createMigrationsTable = async () => {
 // Check if a migration has already been executed
 const isMigrationExecuted = async (filename) => {
   try {
-    const result = await query('SELECT id FROM migrations WHERE filename = $1', [filename]);
+    const result = await query(
+      "SELECT id FROM migrations WHERE filename = $1",
+      [filename],
+    );
     return result.rows.length > 0;
   } catch (error) {
-    console.error('Error checking migration status:', error);
+    console.error("Error checking migration status:", error);
     throw error;
   }
 };
@@ -33,9 +36,9 @@ const isMigrationExecuted = async (filename) => {
 // Mark a migration as executed
 const markMigrationExecuted = async (filename) => {
   try {
-    await query('INSERT INTO migrations (filename) VALUES ($1)', [filename]);
+    await query("INSERT INTO migrations (filename) VALUES ($1)", [filename]);
   } catch (error) {
-    console.error('Error marking migration as executed:', error);
+    console.error("Error marking migration as executed:", error);
     throw error;
   }
 };
@@ -44,8 +47,8 @@ const markMigrationExecuted = async (filename) => {
 const executeMigration = async (filename) => {
   try {
     const filePath = path.join(__dirname, filename);
-    const sql = fs.readFileSync(filePath, 'utf8');
-    
+    const sql = fs.readFileSync(filePath, "utf8");
+
     console.log(`Executing migration: ${filename}`);
     await query(sql);
     await markMigrationExecuted(filename);
@@ -58,39 +61,40 @@ const executeMigration = async (filename) => {
 
 // Get all migration files in order
 const getMigrationFiles = () => {
-  const files = fs.readdirSync(__dirname)
-    .filter(file => file.endsWith('.sql'))
+  const files = fs
+    .readdirSync(__dirname)
+    .filter((file) => file.endsWith(".sql"))
     .sort(); // This will sort them alphabetically, so 001_, 002_, etc. will be in order
-  
+
   return files;
 };
 
 // Run all migrations
 const runMigrations = async () => {
   try {
-    console.log('Starting database migrations...');
-    
+    console.log("Starting database migrations...");
+
     // Create migrations table if it doesn't exist
     await createMigrationsTable();
-    
+
     // Get all migration files
     const migrationFiles = getMigrationFiles();
     console.log(`Found ${migrationFiles.length} migration files`);
-    
+
     // Execute each migration in order
     for (const filename of migrationFiles) {
       const isExecuted = await isMigrationExecuted(filename);
-      
+
       if (isExecuted) {
         console.log(`- Migration ${filename} already executed, skipping`);
       } else {
         await executeMigration(filename);
       }
     }
-    
-    console.log('✓ All migrations completed successfully!');
+
+    console.log("✓ All migrations completed successfully!");
   } catch (error) {
-    console.error('✗ Migration failed:', error);
+    console.error("✗ Migration failed:", error);
     process.exit(1);
   }
 };
@@ -99,13 +103,13 @@ const runMigrations = async () => {
 if (require.main === module) {
   runMigrations()
     .then(() => {
-      console.log('Database setup complete!');
+      console.log("Database setup complete!");
       process.exit(0);
     })
     .catch((error) => {
-      console.error('Database setup failed:', error);
+      console.error("Database setup failed:", error);
       process.exit(1);
     });
 }
 
-module.exports = { runMigrations }; 
+module.exports = { runMigrations };
