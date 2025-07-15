@@ -1,0 +1,1 @@
+ALTER TABLE storybooks ADD COLUMN pages JSONB; 

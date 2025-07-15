@@ -1,0 +1,1 @@
+ALTER TABLE storybooks ALTER COLUMN title DROP NOT NULL; 
