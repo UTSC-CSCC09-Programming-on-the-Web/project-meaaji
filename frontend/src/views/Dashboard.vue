@@ -223,7 +223,12 @@ const getPages = (sb: any) => {
               <img :src="API_BASE_URL + generatedStorybook.image_url" alt="Storybook Image" class="max-h-48 rounded" />
             </div>
             <ol class="list-decimal pl-6 space-y-2">
-              <li v-for="(page, idx) in getPages(generatedStorybook)" :key="idx" class="text-gray-800">{{ page }}</li>
+              <li v-for="(page, idx) in getPages(generatedStorybook)" :key="idx" class="text-gray-800">
+                <div v-if="generatedStorybook.images && generatedStorybook.images[idx]">
+                  <img :src="API_BASE_URL + generatedStorybook.images[idx]" alt="Page Image" class="max-h-48 rounded mb-2" />
+                </div>
+                {{ page }}
+              </li>
             </ol>
           </div>
         </div>
@@ -264,7 +269,13 @@ const getPages = (sb: any) => {
         </div>
         <div class="text-xl font-bold mb-2 text-center">{{ viewingStorybook?.title || viewingStorybook?.prompt || 'Untitled Storybook' }}</div>
         <div class="min-h-[120px] w-full flex flex-col items-center justify-center">
-          <div v-for="(page, idx) in getPages(viewingStorybook).slice(currentPage, currentPage + pagesPerView)" :key="idx" class="mb-4 text-gray-800 text-lg text-center">
+          <div
+            v-for="(page, idx) in getPages(viewingStorybook).slice(currentPage, currentPage + pagesPerView)"
+            :key="currentPage + idx"
+          >
+            <div v-if="viewingStorybook.images && viewingStorybook.images[currentPage + idx]">
+              <img :src="API_BASE_URL + viewingStorybook.images[currentPage + idx]" alt="Page Image" class="max-h-48 rounded mb-2 mx-auto" />
+            </div>
             {{ page }}
           </div>
         </div>

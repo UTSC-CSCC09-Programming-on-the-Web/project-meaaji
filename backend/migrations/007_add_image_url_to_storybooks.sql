@@ -1,1 +1,1 @@
-ALTER TABLE storybooks ADD COLUMN image_url TEXT; 
+ALTER TABLE storybooks ADD COLUMN IF NOT EXISTS image_url TEXT; 

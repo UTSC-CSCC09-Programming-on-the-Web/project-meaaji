@@ -27,6 +27,7 @@ const { pool } = require("./config/database");
 const app = express();
 const PORT = process.env.PORT || 3000;
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const MAX_PAGES = 15;
 
 // Load env from project root
 dotenv.config({ path: path.join(__dirname, "../.env") });
@@ -533,13 +534,27 @@ app.post(
       }
       // Split into pages (paragraphs)
       let pages = storyText.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
-      if (pages.length < 10) pages = [storyText]; // fallback
+      if (pages.length > MAX_PAGES) pages = pages.slice(0, MAX_PAGES);
+      // Generate a single seed for this storybook
+      const seed = Math.floor(Math.random() * 1000000);
+      // Generate images for each page
+      const images = [];
+      let counter = 0;
+      for (const pageText of pages) {
+        const imageUrl = await generateImageWithStabilityAI(pageText, seed);
+        images.push(imageUrl);
+        console.log("Finished generating image number " + counter);
+        counter++;
+      }
+
       const storybook = await Storybook.create({
         user_id: user.id,
         prompt,
         image_url,
         pages,
+        images, // new field
       });
+      console.log('IMAGES ARRAY TO SAVE:', images);
       res.json({ storybook });
     } catch (error) {
       console.error("Storybook creation error:", error);
@@ -670,3 +685,45 @@ process.on("SIGINT", async () => {
 });
 
 startServer();
+
+async function generateImageWithStabilityAI(prompt, seed) {
+  const response = await fetch('https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.STABILITY_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      text_prompts: [{ text: prompt }],
+      cfg_scale: 7,
+      height: 1024,
+      width: 1024,
+      samples: 1,
+      steps: 30,
+      seed // pass the seed for style continuity
+    })
+  });
+  // Try to parse the response as JSON
+  let data;
+  try {
+    data = await response.json();
+  } catch (e) {
+    throw new Error('Failed to parse Stability API response as JSON');
+  }
+
+  // Check for errors in the response
+  if (!response.ok) {
+    console.error('Stability API error:', data);
+    throw new Error(data.message || 'Stability API error');
+  }
+  if (!data.artifacts || !data.artifacts[0] || !data.artifacts[0].base64) {
+    console.error('Stability API returned unexpected data:', data);
+    throw new Error('Stability API did not return an image');
+  }
+
+  const base64 = data.artifacts[0].base64;
+  const filename = `page_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.png`;
+  const filePath = path.join(__dirname, 'uploads', filename);
+  fs.writeFileSync(filePath, Buffer.from(base64, 'base64'));
+  return `/uploads/${filename}`;
+}

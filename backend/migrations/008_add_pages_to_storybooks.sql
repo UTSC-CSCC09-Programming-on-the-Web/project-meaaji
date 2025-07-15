@@ -1,1 +1,1 @@
-ALTER TABLE storybooks ADD COLUMN pages JSONB; 
+ALTER TABLE storybooks ADD COLUMN IF NOT EXISTS pages JSONB; 
