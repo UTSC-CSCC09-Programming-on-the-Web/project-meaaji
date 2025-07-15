@@ -11,6 +11,16 @@ const path = require("path");
 const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
 require("dotenv").config();
+const multer = require("multer");
+const fs = require("fs");
+const Storybook = require("./models/Storybook");
+const { CohereClient } = require("cohere-ai");
+const cohere = new CohereClient({ token: process.env.COHERE_API_KEY });
+
+const upload = multer({
+  dest: path.join(__dirname, "uploads/"),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+});
 
 const { pool } = require("./config/database");
 
@@ -372,17 +382,55 @@ app.get("/check-subscription-status", authenticateToken, async (req, res) => {
 
 // 6. Create Stripe checkout session
 app.post("/create-checkout-session", authenticateToken, async (req, res) => {
+  console.log("🔍 Starting checkout session creation...");
+  console.log("📋 Environment variables:");
+  console.log("  - MONTHLY_PRICE_ID:", process.env.MONTHLY_PRICE_ID);
+  console.log("  - FRONTEND_URL:", process.env.FRONTEND_URL);
+  console.log("  - STRIPE_SECRET_KEY:", process.env.STRIPE_SECRET_KEY ? "SET" : "NOT SET");
+  
   try {
+    console.log("👤 Finding user...");
     const user = await User.findById(req.user.id);
+    console.log("  - User found:", user ? `ID: ${user.id}, Email: ${user.email}` : "NOT FOUND");
+    
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
     let customer;
     if (user.stripe_customer_id) {
+      console.log("🔍 Retrieving existing Stripe customer...");
+      try {
       customer = await stripe.customers.retrieve(user.stripe_customer_id);
+        console.log("  - Existing customer found:", customer.id);
+      } catch (error) {
+        console.log("  - Customer not found in Stripe, creating new one...");
+        // Customer doesn't exist in Stripe, create a new one
+        customer = await stripe.customers.create({
+          email: user.email,
+          name: user.display_name,
+          metadata: { googleId: user.google_id },
+        });
+        console.log("  - New customer created:", customer.id);
+        
+        console.log("💾 Updating user with new Stripe customer ID...");
+        await User.updateSubscriptionStatus(
+          user.id,
+          user.subscription_status,
+          user.subscription_id,
+          customer.id,
+        );
+      }
     } else {
+      console.log("🆕 Creating new Stripe customer...");
       customer = await stripe.customers.create({
         email: user.email,
         name: user.display_name,
         metadata: { googleId: user.google_id },
       });
+      console.log("  - New customer created:", customer.id);
+      
+      console.log("💾 Updating user with Stripe customer ID...");
       await User.updateSubscriptionStatus(
         user.id,
         user.subscription_status,
@@ -390,6 +438,13 @@ app.post("/create-checkout-session", authenticateToken, async (req, res) => {
         customer.id,
       );
     }
+    
+    console.log("🛒 Creating Stripe checkout session...");
+    console.log("  - Price ID:", process.env.MONTHLY_PRICE_ID);
+    console.log("  - Customer ID:", customer.id);
+    console.log("  - Success URL:", `${process.env.FRONTEND_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}`);
+    console.log("  - Cancel URL:", `${process.env.FRONTEND_URL}/subscribe?canceled=true`);
+    
     const session = await stripe.checkout.sessions.create({
       customer: customer.id,
       payment_method_types: ["card"],
@@ -399,10 +454,21 @@ app.post("/create-checkout-session", authenticateToken, async (req, res) => {
       cancel_url: `${process.env.FRONTEND_URL}/subscribe?canceled=true`,
       metadata: { googleId: user.google_id },
     });
+    
+    console.log("✅ Checkout session created successfully:", session.id);
     res.json({ sessionId: session.id, url: session.url });
   } catch (error) {
-    console.error("Stripe checkout session error:", error);
-    res.status(500).json({ error: "Failed to create checkout session" });
+    console.error("❌ Stripe checkout session error:");
+    console.error("  - Error message:", error.message);
+    console.error("  - Error type:", error.type);
+    console.error("  - Error code:", error.code);
+    console.error("  - Full error:", JSON.stringify(error, null, 2));
+    res.status(500).json({ 
+      error: "Failed to create checkout session",
+      details: error.message,
+      type: error.type,
+      code: error.code
+    });
   }
 });
 
@@ -425,6 +491,114 @@ app.get(
     });
   },
 );
+
+// POST /api/storybooks - create a new storybook
+app.post(
+  "/api/storybooks",
+  authenticateToken,
+  upload.single("image"),
+  async (req, res) => {
+    try {
+      const user = await User.findById(req.user.id);
+      if (!user) return res.status(404).json({ error: "User not found" });
+      const prompt = req.body.prompt;
+      if (!prompt) return res.status(400).json({ error: "Prompt required" });
+      let image_url = null;
+      if (req.file) {
+        image_url = `/uploads/${req.file.filename}`;
+      }
+      // Compose Cohere prompt
+      let coherePrompt = `Write a children's story in 10-15 short pages (1-2 sentences per page) about: "${prompt}". The story should be around 20-30 sentences in total. Each page should be a separate paragraph. Do not include a title, any introduction, explanation, or commentary—just the story itself. Do not start with phrases like 'Sure,' 'Here is...', or a title. Begin directly with the first sentence of the story.`;
+      if (image_url) {
+        coherePrompt += ` Incorporate the image into the story, but do not mention the image directly.`;
+      }
+      // Call Cohere
+      let storyText = "";
+      try {
+        const cohereRes = await cohere.generate({
+          model: "command",
+          prompt: coherePrompt,
+          max_tokens: 1200,
+          temperature: 0.8,
+        });
+        storyText = cohereRes.generations[0].text;
+        // Remove any leading meta text before the story
+        storyText = storyText.replace(/^(.*?)(Once upon a time|[A-Z][^\n]*)/, '$2');
+      } catch (error) {
+        if (error.statusCode === 429) {
+          return res.status(429).json({ error: 'Cohere rate limit reached. Please try again later.' });
+        }
+        console.error('Cohere API error:', error);
+        return res.status(500).json({ error: 'Failed to generate storybook', details: error.message });
+      }
+      // Split into pages (paragraphs)
+      let pages = storyText.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+      if (pages.length < 10) pages = [storyText]; // fallback
+      const storybook = await Storybook.create({
+        user_id: user.id,
+        prompt,
+        image_url,
+        pages,
+      });
+      res.json({ storybook });
+    } catch (error) {
+      console.error("Storybook creation error:", error);
+      res.status(500).json({ error: "Failed to create storybook", details: error.message });
+    }
+  }
+);
+
+// GET /api/storybooks - get user's storybooks
+app.get("/api/storybooks", authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    const storybooks = await Storybook.findByUser(user.id);
+    res.json({ storybooks });
+  } catch (error) {
+    console.error("Fetch storybooks error:", error);
+    res.status(500).json({ error: "Failed to fetch storybooks" });
+  }
+});
+
+// DELETE /api/storybooks/:id - delete a single storybook
+app.delete("/api/storybooks/:id", authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    const id = req.params.id;
+    // Only allow deleting user's own storybooks
+    const result = await require('./models/Storybook').deleteById(id, user.id);
+    if (result) {
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: "Storybook not found or not yours" });
+    }
+  } catch (error) {
+    console.error("Delete storybook error:", error);
+    res.status(500).json({ error: "Failed to delete storybook" });
+  }
+});
+
+// DELETE /api/storybooks - delete all storybooks for the user
+app.delete("/api/storybooks", authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    await require('./models/Storybook').deleteAllByUser(user.id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Delete all storybooks error:", error);
+    res.status(500).json({ error: "Failed to delete all storybooks" });
+  }
+});
+
+const uploadsPath = path.join(__dirname, "uploads");
+app.use("/uploads", (req, res, next) => {
+  res.header("Access-Control-Allow-Origin", process.env.FRONTEND_URL || "http://localhost:5173");
+  res.header("Cross-Origin-Resource-Policy", "same-site");
+  next();
+}, express.static(uploadsPath));
 
 // 9. Health check
 app.get("/health", (req, res) => {

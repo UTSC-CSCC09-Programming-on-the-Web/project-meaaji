@@ -23,6 +23,7 @@
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "bullmq": "^4.15.1",
+    "cohere-ai": "^7.17.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
@@ -33,6 +34,7 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
     "node-fetch": "^3.3.2",
+    "openai": "^3.3.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "pg": "^8.11.3",

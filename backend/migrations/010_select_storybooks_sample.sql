@@ -1,0 +1,1 @@
+SELECT id, prompt, image_url, pages FROM storybooks LIMIT 5; 

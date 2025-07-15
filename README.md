@@ -405,3 +405,63 @@ MIT License - see LICENSE file for details
 - [ ] Test authentication and payment flow
 
 **Remember:** The Stripe CLI webhook secret changes each time you restart the listener!
+
+## 📚 AI Storybook Generator (NEW)
+
+**Create a 10-15 page children’s storybook using AI (powered by Cohere)!**
+
+### How it works
+- On the dashboard, enter a prompt and (optionally) upload an image.
+- Click "Generate Storybook".
+- The backend calls Cohere's Command model to generate a storybook (1-2 sentences per page, 10-15 pages, ~20-30 sentences total).
+- The storybook (prompt, image, pages) is saved to your account.
+- You can view all your previous storybooks on the dashboard, and read them in a paginated, book-like viewer.
+
+### Usage
+1. Go to the Dashboard (after subscribing and logging in)
+2. Enter a creative prompt (e.g., "A dragon who learns to dance")
+3. (Optional) Upload an image to inspire the story
+4. Click **Generate Storybook**
+5. Wait for the AI to generate your storybook (may take a few seconds)
+6. View your new storybook and all previous storybooks below
+
+### API Endpoints
+- `POST /api/storybooks` (auth required)
+  - Form fields: `prompt` (string, required), `image` (file, optional)
+  - Returns: `{ storybook: { id, prompt, image_url, pages, created_at } }`
+- `GET /api/storybooks` (auth required)
+  - Returns: `{ storybooks: [ ... ] }`
+- `DELETE /api/storybooks/:id` (auth required)
+  - Deletes a single storybook
+- `DELETE /api/storybooks` (auth required)
+  - Deletes all storybooks for the user
+
+### Database
+- Table: `storybooks`
+  - `id` (serial, PK)
+  - `user_id` (int, FK)
+  - `prompt` (text)
+  - `image_url` (text, local file path)
+  - `pages` (jsonb, array of strings)
+  - `created_at` (timestamp)
+
+### Local Image Storage
+- Uploaded images are stored in `backend/uploads/` and served at `/uploads/<filename>`
+- No external image hosting required
+
+### Requirements
+- **Cohere API key**: Add `COHERE_API_KEY=your_actual_key_here` to your `.env` file in the backend
+- **Cohere free tier** is sufficient for prototyping
+
+### Example .env additions
+```
+COHERE_API_KEY=your_actual_key_here
+```
+
+### Troubleshooting
+- If storybook generation fails, check your Cohere API key and quota at https://dashboard.cohere.com/
+- Images must be under 10MB
+- If you see `[object Object]` in story pages, check backend logs for errors
+- If stories are not paginated, the app will automatically split the story into pages (2 sentences per page)
+
+---
