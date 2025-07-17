@@ -6,6 +6,7 @@ import { useRouter } from "vue-router";
 const { user, signOut, checkSubscriptionStatus } = useAuth();
 const router = useRouter();
 
+const title = ref("");
 const prompt = ref("");
 const image = ref<File | null>(null);
 const isLoading = ref(false);
@@ -55,6 +56,7 @@ const generateStorybook = async () => {
   try {
     const token = localStorage.getItem("auth_token");
     const formData = new FormData();
+    formData.append("title", title.value);
     formData.append("prompt", prompt.value);
     if (image.value) formData.append("image", image.value);
     const res = await fetch(`${API_BASE_URL}/api/storybooks`, {
@@ -267,6 +269,15 @@ const getPages = (sb: any) => {
           <div class="text-4xl font-bold text-primary-800 mb-4 text-center">Let's Craft a Story!</div>
           <div class="w-full flex flex-col space-y-6">
             <input
+              v-model="title"
+              type="text"
+              placeholder="Story Title (e.g. The Brave Little Fox)"
+              class="input-field"
+              :disabled="isLoading"
+              maxlength="100"
+              required
+            />
+            <input
               v-model="prompt"
               type="text"
               placeholder="What magical adventure should we create today?"
@@ -304,7 +315,7 @@ const getPages = (sb: any) => {
 
           <!-- Generated Storybook Preview -->
           <div v-if="generatedStorybook" class="w-full mt-8 bg-primary-50 rounded-2xl shadow-inner p-8 border-2 border-primary-200 animate-pop-in">
-            <div class="text-3xl font-bold text-primary-700 mb-4 text-center">Your Brand New Story!</div>
+            <div class="text-3xl font-bold text-primary-700 mb-4 text-center">{{ generatedStorybook.title || 'Your Brand New Story!' }}</div>
             <div v-if="generatedStorybook.image_url" class="mb-6 flex justify-center">
               <img :src="API_BASE_URL + generatedStorybook.image_url" alt="Storybook Cover Image" class="max-h-64 rounded-xl shadow-lg border-4 border-white transform hover:scale-105 transition-transform duration-300" />
             </div>

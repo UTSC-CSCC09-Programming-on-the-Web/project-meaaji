@@ -502,6 +502,8 @@ app.post(
     try {
       const user = await User.findById(req.user.id);
       if (!user) return res.status(404).json({ error: "User not found" });
+      const title = req.body.title;
+      if (!title) return res.status(400).json({ error: "Title required" });
       const prompt = req.body.prompt;
       if (!prompt) return res.status(400).json({ error: "Prompt required" });
       let image_url = null;
@@ -509,7 +511,7 @@ app.post(
         image_url = `/uploads/${req.file.filename}`;
       }
       // Compose Cohere prompt
-      let coherePrompt = `Write a children's story in 10-15 short pages (1-2 sentences per page) about: "${prompt}". The story should be around 20-30 sentences in total. Do not include a title, any introduction, explanation, or commentary—just the story itself. Do not start with phrases like 'Sure,' 'Here is...', or a title. Begin directly with the first sentence of the story.`;
+      let coherePrompt = `Write a children's story in 10-15 short pages (1-2 sentences per page), the title of the story is, but don't include in the generated story: '${title}'. The story should be about: "${prompt}". The story should be around 20-30 sentences in total. EXPLICITLY do not include a title, any introduction, explanation, or commentary—just the story itself. Do not start with phrases like 'Sure,' 'Here is...', a title and DO NOT end with the end, simply leave the story as is. Begin directly with the first sentence of the story.`;
       if (image_url) {
         coherePrompt += ` Incorporate the image into the story, but do not mention the image directly.`;
       }
@@ -535,11 +537,19 @@ app.post(
       // Split into pages (paragraphs)
       let pages = storyText.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
       
-      // If we have too few pages, split by sentences to create more pages
-      if (pages.length < 3) {
-        const allSentences = storyText.match(/[^.!?]+[.!?]+/g) || [storyText];
-        pages = allSentences.map(s => s.trim()).filter(Boolean);
+      // For each page, if it has more than 2 sentences, split it into pages of 2 sentences each
+      let finalPages = [];
+      for (const page of pages) {
+        const sentences = page.match(/[^.!?]+[.!?]+/g) || [page];
+        if (sentences.length > 2) {
+          for (let i = 0; i < sentences.length; i += 2) {
+            finalPages.push(sentences.slice(i, i + 2).join(' ').trim());
+          }
+        } else {
+          finalPages.push(page);
+        }
       }
+      pages = finalPages;
       
       if (pages.length > MAX_PAGES) pages = pages.slice(0, MAX_PAGES);
       // Generate a single seed for this storybook
@@ -556,6 +566,7 @@ app.post(
 
       const storybook = await Storybook.create({
         user_id: user.id,
+        title,
         prompt,
         image_url,
         pages,
