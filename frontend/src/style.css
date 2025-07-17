@@ -1,31 +1,60 @@
+/* Import the new playful font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Bubblegum+Sans&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   html {
-    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+    /* Apply the new font family globally */
+    font-family: 'Bubblegum Sans', cursive, system-ui, Avenir, Helvetica, Arial, sans-serif;
   }
 
   body {
-    @apply bg-gray-50 text-gray-900;
+    /* Use a soft, inviting background color */
+    @apply bg-primary-50 text-neutral-900;
   }
 }
 
 @layer components {
+  /* Primary button with vibrant colors and rounded edges */
   .btn-primary {
-    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-6 rounded-lg transition-all duration-200 ease-in-out shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+    @apply bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 px-6 rounded-full transition-all duration-300 ease-in-out shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-primary-300 focus:ring-offset-2 transform hover:scale-105 active:scale-95;
   }
 
+  /* Google button with a friendly, clean look */
   .btn-google {
-    @apply bg-white hover:bg-gray-50 text-gray-700 font-medium py-3 px-6 rounded-lg border border-gray-300 transition-all duration-200 ease-in-out shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 flex items-center justify-center gap-3;
+    @apply bg-white hover:bg-neutral-50 text-neutral-700 font-bold py-3 px-6 rounded-full border-2 border-neutral-200 transition-all duration-300 ease-in-out shadow-md hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-primary-300 focus:ring-offset-2 flex items-center justify-center gap-3 transform hover:scale-105 active:scale-95;
   }
 
+  /* Secondary button for less prominent actions */
+  .btn-secondary {
+    @apply bg-secondary-400 hover:bg-secondary-500 text-white font-bold py-2 px-5 rounded-full transition-all duration-300 ease-in-out shadow-md hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-secondary-300 focus:ring-offset-2 transform hover:scale-105 active:scale-95;
+  }
+
+  /* Danger button for delete actions, with a softer red */
+  .btn-danger {
+    @apply bg-red-400 hover:bg-red-500 text-white font-bold py-2 px-5 rounded-full transition-all duration-300 ease-in-out shadow-md hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-red-300 focus:ring-offset-2 transform hover:scale-105 active:scale-95;
+  }
+
+  /* Input fields with rounded corners and a clear focus state */
   .input-field {
-    @apply w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 ease-in-out;
+    @apply w-full px-5 py-3 border-2 border-primary-200 rounded-xl focus:ring-4 focus:ring-primary-300 focus:border-primary-500 transition-all duration-200 ease-in-out text-neutral-700 placeholder-neutral-400;
   }
 
+  /* Card style with soft shadows and very rounded corners */
   .card {
-    @apply bg-white rounded-xl shadow-lg border border-gray-100;
+    @apply bg-white rounded-3xl shadow-xl border border-primary-100 p-8;
+  }
+
+  /* Special container for storybook pages in the viewer */
+  .storybook-page-container {
+    @apply bg-white rounded-2xl shadow-lg border border-primary-200 p-6 flex flex-col items-center justify-center text-center relative;
+  }
+
+  /* Custom spinner for loading states */
+  .loading-spinner {
+    @apply inline-block h-6 w-6 rounded-full border-4 border-t-4 border-neutral-200 border-t-primary-500 animate-spin;
   }
 }

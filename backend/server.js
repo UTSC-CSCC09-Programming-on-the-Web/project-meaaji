@@ -509,7 +509,7 @@ app.post(
         image_url = `/uploads/${req.file.filename}`;
       }
       // Compose Cohere prompt
-      let coherePrompt = `Write a children's story in 10-15 short pages (1-2 sentences per page) about: "${prompt}". The story should be around 20-30 sentences in total. Each page should be a separate paragraph. Do not include a title, any introduction, explanation, or commentary—just the story itself. Do not start with phrases like 'Sure,' 'Here is...', or a title. Begin directly with the first sentence of the story.`;
+      let coherePrompt = `Write a children's story in 10-15 short pages (1-2 sentences per page) about: "${prompt}". The story should be around 20-30 sentences in total. Do not include a title, any introduction, explanation, or commentary—just the story itself. Do not start with phrases like 'Sure,' 'Here is...', or a title. Begin directly with the first sentence of the story.`;
       if (image_url) {
         coherePrompt += ` Incorporate the image into the story, but do not mention the image directly.`;
       }
@@ -534,6 +534,13 @@ app.post(
       }
       // Split into pages (paragraphs)
       let pages = storyText.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+      
+      // If we have too few pages, split by sentences to create more pages
+      if (pages.length < 3) {
+        const allSentences = storyText.match(/[^.!?]+[.!?]+/g) || [storyText];
+        pages = allSentences.map(s => s.trim()).filter(Boolean);
+      }
+      
       if (pages.length > MAX_PAGES) pages = pages.slice(0, MAX_PAGES);
       // Generate a single seed for this storybook
       const seed = Math.floor(Math.random() * 1000000);

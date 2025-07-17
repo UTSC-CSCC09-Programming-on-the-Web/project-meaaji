@@ -14,38 +14,35 @@ const handleGoogleSignUp = () => {
 
 <template>
   <div
-    class="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-gray-100 px-4 sm:px-6 lg:px-8"
+    class="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-200 via-primary-100 to-secondary-100 px-4 sm:px-6 lg:px-8"
   >
-    <div class="w-full max-w-md space-y-8 animate-fade-in">
+    <div class="w-full max-w-md space-y-8 animate-pop-in">
       <!-- Header -->
       <div class="text-center">
         <div
-          class="mx-auto h-16 w-16 bg-primary-100 rounded-full flex items-center justify-center mb-6"
+          class="mx-auto h-24 w-24 bg-primary-300 rounded-full flex items-center justify-center mb-6 shadow-lg animate-pulse-grow"
         >
+          <!-- A friendly storybook icon -->
           <svg
-            class="h-8 w-8 text-primary-600"
-            fill="none"
-            stroke="currentColor"
+            class="h-12 w-12 text-white"
+            fill="currentColor"
             viewBox="0 0 24 24"
           >
             <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+              d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 4.5V9h-2v1.5H9v2h3v1.5h2v-1.5h3v-2h-3z"
             />
           </svg>
         </div>
-        <h2 class="text-3xl font-bold text-gray-900 tracking-tight">
-          Welcome to Premium App
+        <h2 class="text-4xl font-bold text-neutral-900 tracking-tight mb-2">
+          Welcome to Draw2Play!
         </h2>
-        <p class="mt-2 text-gray-600">
-          Sign in with Google to access your premium features
+        <p class="mt-2 text-primary-700 text-lg">
+          Sign in with Google to explore magical stories!
         </p>
-        <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-          <p class="text-sm text-blue-800">
+        <div class="mt-6 p-4 bg-secondary-100 rounded-xl border border-secondary-300 shadow-md">
+          <p class="text-base text-secondary-800 flex items-center justify-center">
             <svg
-              class="inline w-4 h-4 mr-1"
+              class="inline w-5 h-5 mr-2 text-secondary-600"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -55,7 +52,7 @@ const handleGoogleSignUp = () => {
                 clip-rule="evenodd"
               />
             </svg>
-            Active subscription required to access the app
+            A special pass is needed to enter!
           </p>
         </div>
       </div>
@@ -73,15 +70,14 @@ const handleGoogleSignUp = () => {
               v-if="isLoading"
               class="absolute inset-0 flex items-center justify-center"
             >
-              <div
-                class="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600"
-              ></div>
+              <div class="loading-spinner"></div>
             </div>
 
             <div
               :class="{ 'opacity-0': isLoading }"
               class="flex items-center justify-center gap-3"
             >
+              <!-- Google icon - kept as is for brand recognition -->
               <svg class="w-5 h-5" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
@@ -100,18 +96,18 @@ const handleGoogleSignUp = () => {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              <span>Sign in with Google</span>
+              <span>Adventure In!</span>
             </div>
           </button>
 
           <!-- Divider -->
           <div class="relative">
             <div class="absolute inset-0 flex items-center">
-              <div class="w-full border-t border-gray-200"></div>
+              <div class="w-full border-t-2 border-neutral-200"></div>
             </div>
             <div class="relative flex justify-center text-sm">
-              <span class="px-4 bg-white text-gray-500"
-                >New to our platform?</span
+              <span class="px-4 bg-white text-neutral-500 font-semibold"
+                >New friend joining?</span
               >
             </div>
           </div>
@@ -120,21 +116,20 @@ const handleGoogleSignUp = () => {
           <button
             @click="handleGoogleSignUp"
             :disabled="isLoading"
-            class="btn-google w-full relative border-2 border-primary-200 hover:border-primary-300"
+            class="btn-google w-full relative border-2 border-primary-300 hover:border-primary-400"
           >
             <div
               v-if="isLoading"
               class="absolute inset-0 flex items-center justify-center"
             >
-              <div
-                class="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600"
-              ></div>
+              <div class="loading-spinner"></div>
             </div>
 
             <div
               :class="{ 'opacity-0': isLoading }"
               class="flex items-center justify-center gap-3"
             >
+              <!-- Google icon - kept as is for brand recognition -->
               <svg class="w-5 h-5" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
@@ -153,25 +148,25 @@ const handleGoogleSignUp = () => {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              <span>Create account with Google</span>
+              <span>Start a New Adventure!</span>
             </div>
           </button>
         </div>
       </div>
 
       <!-- Footer -->
-      <div class="text-center text-xs text-gray-500">
+      <div class="text-center text-xs text-neutral-500">
         <p>
           By continuing, you agree to our
-          <a href="#" class="text-primary-600 hover:text-primary-500"
-            >Terms of Service</a
+          <a href="#" class="text-primary-600 hover:text-primary-500 font-bold"
+            >Magical Rules</a
           >
           and
-          <a href="#" class="text-primary-600 hover:text-primary-500"
-            >Privacy Policy</a
+          <a href="#" class="text-primary-600 hover:text-primary-500 font-bold"
+            >Secret Scroll Policy</a
           >
         </p>
-        <p class="mt-2">Monthly subscription required • Cancel anytime</p>
+        <p class="mt-2">Monthly adventure pass required • Cancel anytime</p>
       </div>
     </div>
   </div>

@@ -3,7 +3,7 @@ import { onMounted, ref } from "vue";
 import { useAuth } from "../composables/useAuth";
 import { useStripe } from "../composables/useStripe";
 import { useRoute, useRouter } from "vue-router";
-import LoadingSpinner from "../components/LoadingSpinner.vue";
+import LoadingSpinner from "../components/LoadingSpinner.vue"; // Assuming this component exists and is styled
 
 const { user, checkSubscriptionStatus, signOut } = useAuth();
 const { isLoading, createCheckoutSession } = useStripe();
@@ -33,32 +33,23 @@ const handleSubscribe = () => {
 
 <template>
   <div
-    class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100"
+    class="min-h-screen bg-gradient-to-br from-primary-100 via-primary-50 to-secondary-50 font-sans"
   >
     <!-- Navigation -->
-    <nav class="bg-white shadow-sm border-b border-gray-200">
+    <nav class="bg-white shadow-md border-b-4 border-primary-200">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center h-16">
+        <div class="flex justify-between items-center h-20">
           <div class="flex items-center">
             <div
-              class="h-8 w-8 bg-primary-600 rounded-lg flex items-center justify-center"
+              class="h-12 w-12 bg-primary-500 rounded-xl flex items-center justify-center shadow-lg animate-pop-in"
             >
-              <svg
-                class="h-5 w-5 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
+              <!-- Friendly app icon -->
+              <svg class="h-8 w-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2c-3.31 0-6 2.69-6 6 0 2.45 1.76 4.47 4.08 4.92L12 22l1.92-9.08C16.24 12.47 18 10.45 18 8c0-3.31-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>
               </svg>
             </div>
-            <span class="ml-2 text-xl font-semibold text-gray-900"
-              >Premium App</span
+            <span class="ml-3 text-3xl font-bold text-primary-700"
+              >Draw2Play!</span
             >
           </div>
 
@@ -67,18 +58,18 @@ const handleSubscribe = () => {
               <img
                 :src="user.picture"
                 :alt="user.name"
-                class="h-8 w-8 rounded-full"
+                class="h-10 w-10 rounded-full border-2 border-primary-300 shadow-md"
               />
-              <span class="text-sm font-medium text-gray-700">{{
+              <span class="text-lg font-semibold text-neutral-700">{{
                 user.name
               }}</span>
             </div>
 
             <button
               @click="signOut"
-              class="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              class="text-base text-neutral-600 hover:text-primary-700 transition-colors font-semibold"
             >
-              Sign out
+              Fly Away!
             </button>
           </div>
         </div>
@@ -91,11 +82,11 @@ const handleSubscribe = () => {
         <!-- Canceled Message -->
         <div
           v-if="canceled"
-          class="mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg"
+          class="mb-8 p-4 bg-secondary-100 border-2 border-secondary-300 rounded-xl shadow-md"
         >
           <div class="flex items-center justify-center">
             <svg
-              class="h-5 w-5 text-yellow-600 mr-2"
+              class="h-6 w-6 text-secondary-600 mr-2"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -105,8 +96,8 @@ const handleSubscribe = () => {
                 clip-rule="evenodd"
               />
             </svg>
-            <p class="text-yellow-800">
-              Payment was canceled. You can try again anytime.
+            <p class="text-secondary-800 font-semibold text-lg">
+              Oh no! Your adventure pass was canceled. You can try again anytime!
             </p>
           </div>
         </div>
@@ -114,50 +105,44 @@ const handleSubscribe = () => {
         <!-- Header -->
         <div class="mb-12">
           <div
-            class="mx-auto h-20 w-20 bg-primary-100 rounded-full flex items-center justify-center mb-6"
+            class="mx-auto h-28 w-28 bg-accent-300 rounded-full flex items-center justify-center mb-6 shadow-lg animate-pulse-grow"
           >
+            <!-- A friendly lock/key icon -->
             <svg
-              class="h-10 w-10 text-primary-600"
-              fill="none"
-              stroke="currentColor"
+              class="h-14 w-14 text-white"
+              fill="currentColor"
               viewBox="0 0 24 24"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-              />
+              <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/>
             </svg>
           </div>
-          <h1 class="text-4xl font-bold text-gray-900 mb-4">
-            Unlock Premium Features
+          <h1 class="text-5xl font-bold text-primary-800 mb-4">
+            Unlock the Magic!
           </h1>
-          <p class="text-xl text-gray-600 max-w-2xl mx-auto">
-            Subscribe to access your dashboard and all premium features. Cancel
-            anytime.
+          <p class="text-2xl text-neutral-600 max-w-2xl mx-auto">
+            Get your special adventure pass to explore all the amazing stories and create your own!
           </p>
         </div>
 
         <!-- Pricing Card -->
         <div class="max-w-md mx-auto">
-          <div class="card p-8 animate-slide-up">
-            <div class="text-center mb-6">
+          <div class="card p-10 animate-slide-up">
+            <div class="text-center mb-8">
               <div class="flex items-center justify-center mb-4">
-                <span class="text-5xl font-bold text-gray-900">$9</span>
-                <span class="text-gray-600 ml-2">/month</span>
+                <span class="text-6xl font-bold text-primary-800">$9</span>
+                <span class="text-neutral-600 ml-3 text-2xl">/month</span>
               </div>
-              <h3 class="text-xl font-semibold text-gray-900 mb-2">
-                Premium Access
+              <h3 class="text-3xl font-bold text-primary-700 mb-3">
+                Adventure Pass
               </h3>
-              <p class="text-gray-600">Everything you need to get started</p>
+              <p class="text-neutral-600 text-lg">Your ticket to endless fun!</p>
             </div>
 
             <!-- Features -->
-            <div class="space-y-4 mb-8">
+            <div class="space-y-4 mb-8 text-left">
               <div class="flex items-center">
                 <svg
-                  class="h-5 w-5 text-green-500 mr-3"
+                  class="h-7 w-7 text-accent-500 mr-3"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -167,11 +152,11 @@ const handleSubscribe = () => {
                     clip-rule="evenodd"
                   />
                 </svg>
-                <span class="text-gray-700">Full dashboard access</span>
+                <span class="text-neutral-700 text-lg font-semibold">Full access to all stories!</span>
               </div>
               <div class="flex items-center">
                 <svg
-                  class="h-5 w-5 text-green-500 mr-3"
+                  class="h-7 w-7 text-accent-500 mr-3"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -181,11 +166,11 @@ const handleSubscribe = () => {
                     clip-rule="evenodd"
                   />
                 </svg>
-                <span class="text-gray-700">Advanced analytics</span>
+                <span class="text-neutral-700 text-lg font-semibold">Create your own magical tales!</span>
               </div>
               <div class="flex items-center">
                 <svg
-                  class="h-5 w-5 text-green-500 mr-3"
+                  class="h-7 w-7 text-accent-500 mr-3"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -195,11 +180,11 @@ const handleSubscribe = () => {
                     clip-rule="evenodd"
                   />
                 </svg>
-                <span class="text-gray-700">Priority support</span>
+                <span class="text-neutral-700 text-lg font-semibold">Friendly support always!</span>
               </div>
               <div class="flex items-center">
                 <svg
-                  class="h-5 w-5 text-green-500 mr-3"
+                  class="h-7 w-7 text-accent-500 mr-3"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -209,7 +194,7 @@ const handleSubscribe = () => {
                     clip-rule="evenodd"
                   />
                 </svg>
-                <span class="text-gray-700">Cancel anytime</span>
+                <span class="text-neutral-700 text-lg font-semibold">No long-term commitments!</span>
               </div>
             </div>
 
@@ -217,48 +202,42 @@ const handleSubscribe = () => {
             <button
               @click="handleSubscribe"
               :disabled="isLoading"
-              class="btn-primary w-full relative text-lg py-4"
+              class="btn-primary w-full relative text-2xl py-4"
             >
               <div
                 v-if="isLoading"
                 class="absolute inset-0 flex items-center justify-center"
               >
+                <!-- Assuming LoadingSpinner is properly styled for this context -->
                 <LoadingSpinner size="sm" color="border-white" />
               </div>
 
-              <span :class="{ 'opacity-0': isLoading }"> Subscribe Now </span>
+              <span :class="{ 'opacity-0': isLoading }"> Get Your Pass Now! </span>
             </button>
 
-            <p class="text-xs text-gray-500 mt-4 text-center">
-              Secure payment powered by Stripe • 30-day money-back guarantee
+            <p class="text-sm text-neutral-500 mt-4 text-center">
+              Safe & sound payments by Stripe • 30-day magic guarantee!
             </p>
           </div>
         </div>
 
         <!-- Security Notice -->
         <div class="mt-12 max-w-2xl mx-auto">
-          <div class="bg-gray-50 rounded-lg p-6">
+          <div class="bg-primary-100 rounded-2xl p-6 shadow-md border-2 border-primary-200">
             <div class="flex items-center justify-center mb-4">
               <svg
-                class="h-6 w-6 text-gray-600 mr-2"
-                fill="none"
-                stroke="currentColor"
+                class="h-8 w-8 text-primary-600 mr-2"
+                fill="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                />
+                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/>
               </svg>
-              <h4 class="text-lg font-medium text-gray-900">
-                Secure & Trusted
+              <h4 class="text-2xl font-bold text-primary-800">
+                Super Safe & Trusted!
               </h4>
             </div>
-            <p class="text-gray-600 text-center">
-              Your payment information is encrypted and secure. We use Stripe
-              for payment processing and never store your credit card details.
+            <p class="text-neutral-600 text-center text-lg">
+              Your secret payment info is super safe! We use Stripe for all payments and never peek at your card details.
             </p>
           </div>
         </div>
