@@ -511,7 +511,7 @@ app.post(
         image_url = `/uploads/${req.file.filename}`;
       }
       // Compose Cohere prompt
-      let coherePrompt = `Write a children's story in 10-15 short pages (1-2 sentences per page), the title of the story is, but don't include in the generated story: '${title}'. The story should be about: "${prompt}". The story should be around 20-30 sentences in total. EXPLICITLY do not include a title, any introduction, explanation, or commentary—just the story itself. Do not start with phrases like 'Sure,' 'Here is...', a title and DO NOT end with the end, simply leave the story as is. Begin directly with the first sentence of the story.`;
+      let coherePrompt = `Write a children's story in 10-15 short pages (1-2 sentences per page), the title of the story is, but don't pass it back to me: '${title}'. The story should be about: "${prompt}". The story should be around 20-30 sentences in total. EXPLICITLY do not include a title, any introduction, explanation, or commentary—just the story itself. Do not start with phrases like 'Sure,' 'Here is...', a title and DO NOT end with the end, simply leave the story as is. Begin directly with the first sentence of the story.`;
       if (image_url) {
         coherePrompt += ` Incorporate the image into the story, but do not mention the image directly.`;
       }
@@ -527,6 +527,24 @@ app.post(
         storyText = cohereRes.generations[0].text;
         // Remove any leading meta text before the story
         storyText = storyText.replace(/^(.*?)(Once upon a time|[A-Z][^\n]*)/, '$2');
+
+        // --- Post-process to remove title, intro, and 'The End' ---
+        let lines = storyText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+        // Remove first line if it matches the title (case-insensitive, ignoring punctuation)
+        const normalize = (str) => str.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+        if (lines.length && (normalize(lines[0]) === normalize(title) || lines[0].length < 60 && !lines[0].endsWith('.'))) {
+          lines.shift();
+        }
+        // Remove common intro phrases
+        const introPatterns = [/^here( is|'s)/i, /^sure[.!]?/i, /^let'?s begin/i, /^once upon a time/i, /^story:/i, /^title:/i, /^introduction:/i];
+        while (lines.length && introPatterns.some(pat => pat.test(lines[0]))) {
+          lines.shift();
+        }
+        // Remove 'The End' or similar at the end
+        if (lines.length && /^the end[.!]?$/i.test(lines[lines.length - 1])) {
+          lines.pop();
+        }
+        storyText = lines.join('\n');
       } catch (error) {
         if (error.statusCode === 429) {
           return res.status(429).json({ error: 'Cohere rate limit reached. Please try again later.' });
@@ -557,11 +575,16 @@ app.post(
       // Generate images for each page
       const images = [];
       let counter = 0;
-      for (const pageText of pages) {
-        const imageUrl = await generateImageWithStabilityAI(pageText, seed);
-        images.push(imageUrl);
-        console.log("Finished generating image number " + counter);
-        counter++;
+      try {
+        for (const pageText of pages) {
+          const imageUrl = await generateImageWithStabilityAI(pageText, seed);
+          images.push(imageUrl);
+          console.log("Finished generating image number " + counter);
+          counter++;
+        }
+      } catch (stabilityError) {
+        console.error("Stability AI error:", stabilityError);
+        return res.status(500).json({ error: "Failed to generate images with Stability AI", details: stabilityError.message || stabilityError.toString(), source: "stability" });
       }
 
       const storybook = await Storybook.create({
@@ -576,7 +599,9 @@ app.post(
       res.json({ storybook });
     } catch (error) {
       console.error("Storybook creation error:", error);
-      res.status(500).json({ error: "Failed to create storybook", details: error.message });
+      let source = error.source || "unknown";
+      if (error.details && error.error && error.error.includes("Cohere")) source = "cohere";
+      res.status(500).json({ error: "Failed to create storybook", details: error.message, source });
     }
   }
 );
