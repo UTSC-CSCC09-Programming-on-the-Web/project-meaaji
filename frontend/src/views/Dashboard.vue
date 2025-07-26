@@ -97,6 +97,7 @@ let currentUtterance: SpeechSynthesisUtterance | null = null;
 const speechSynthesis = window.speechSynthesis;
 const selectedVoice = ref<string>("");
 const voices = ref<SpeechSynthesisVoice[]>([]);
+const selectedPageMode = ref<'both' | 'left' | 'right'>('both');
 
 const curatedVoiceList = [
   { name: 'Google US English', label: 'Google US English', region: 'USA' },
@@ -134,9 +135,35 @@ if (typeof window !== 'undefined' && speechSynthesis) {
 
 function playSpeech() {
   stopSpeech();
-  const text = getPages(viewingStorybook.value)[currentPage.value];
-  if (!text) return;
-  currentUtterance = new window.SpeechSynthesisUtterance(text);
+  
+  let textToRead = "";
+  
+  if (currentPage.value === 0) {
+    // On cover page, read the title
+    textToRead = viewingStorybook.value?.title || viewingStorybook.value?.prompt || 'Magical Story';
+  } else {
+    // On story pages, read based on selected mode
+    const pages = getPages(viewingStorybook.value);
+    const leftPageIndex = currentPage.value - 1;
+    const rightPageIndex = currentPage.value;
+    
+    if (selectedPageMode.value === 'both' || selectedPageMode.value === 'left') {
+      if (pages[leftPageIndex]) {
+        textToRead += pages[leftPageIndex];
+      }
+    }
+    
+    if (selectedPageMode.value === 'both' || selectedPageMode.value === 'right') {
+      if (pages[rightPageIndex]) {
+        if (textToRead) textToRead += " ";
+        textToRead += pages[rightPageIndex];
+      }
+    }
+  }
+  
+  if (!textToRead) return;
+  
+  currentUtterance = new window.SpeechSynthesisUtterance(textToRead);
   // Set selected curated voice
   const voiceObj = curatedVoices.value.find(v => v.name === selectedVoice.value);
   if (voiceObj) currentUtterance.voice = voiceObj.voice;
@@ -173,13 +200,17 @@ const closeViewer = () => {
 };
 const nextPage = () => {
   const pages = getPages(viewingStorybook.value);
-  if (currentPage.value < pages.length - 1) {
-    currentPage.value += 1;
+  if (currentPage.value === 0) {
+    currentPage.value = 1;
+  } else if (currentPage.value + 1 < pages.length) {
+    currentPage.value += 2; // Skip by 2 for double-page spread
   }
 };
 const prevPage = () => {
-  if (currentPage.value > 0) {
-    currentPage.value -= 1;
+  if (currentPage.value > 1) {
+    currentPage.value -= 2; // Go back by 2 for double-page spread
+  } else if (currentPage.value === 1) {
+    currentPage.value = 0; // Go back to cover
   }
 };
 
@@ -447,41 +478,380 @@ watch(activeTab, () => {
         </div>
       </div>
 
-      <!-- Storybook Viewer Modal -->
-      <div v-if="showViewer" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4">
-        <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-8 relative flex flex-col items-center border-4 border-primary-300 animate-pop-in">
-          <button @click="closeViewer" class="absolute top-4 right-4 text-neutral-400 hover:text-neutral-700 text-4xl font-bold leading-none">&times;</button>
-          <div v-if="viewingStorybook?.image_url" class="mb-6 flex justify-center">
-            <img :src="API_BASE_URL + viewingStorybook.image_url" alt="Storybook Cover Image" class="max-h-64 rounded-xl shadow-lg border-4 border-white" />
+      <!-- Enhanced Storybook Viewer Modal -->
+      <div v-if="showViewer" class="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 backdrop-blur-sm p-4 animate-fade-in">
+        <!-- Magical floating particles background -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+          <div v-for="i in 20" :key="i" 
+               class="absolute animate-float-slow bg-white rounded-full opacity-20"
+               :style="{
+                 left: Math.random() * 100 + '%',
+                 top: Math.random() * 100 + '%',
+                 width: (Math.random() * 8 + 4) + 'px',
+                 height: (Math.random() * 8 + 4) + 'px',
+                 animationDelay: Math.random() * 3 + 's',
+                 animationDuration: (Math.random() * 4 + 6) + 's'
+               }">
           </div>
-          <div class="text-4xl font-bold text-primary-800 mb-4 text-center">{{ viewingStorybook?.title || viewingStorybook?.prompt || 'Untitled Story Scroll' }}</div>
-          <div class="min-h-[180px] w-full flex flex-col items-center justify-center storybook-page-container">
-            <div v-if="getPages(viewingStorybook)[currentPage]">
-              <div v-if="viewingStorybook.images && viewingStorybook.images[currentPage]" class="mb-4 flex justify-center">
-                <img :src="API_BASE_URL + viewingStorybook.images[currentPage]" alt="Page Illustration" class="max-h-60 rounded-lg shadow-md border-2 border-primary-100" />
+        </div>
+        
+        <!-- Main Storybook Container -->
+        <div class="relative max-w-6xl w-full h-[90vh] flex items-center justify-center">
+          <!-- Close Button -->
+          <button 
+            @click="closeViewer" 
+            class="absolute top-4 right-4 z-10 w-12 h-12 bg-white bg-opacity-20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-opacity-30 transition-all duration-300 text-2xl font-bold shadow-lg hover:shadow-xl transform hover:scale-110"
+          >
+            ×
+          </button>
+
+          <!-- Book Container -->
+          <div class="book-container relative">
+            <!-- Book Spine/Shadow -->
+            <div class="absolute -inset-2 bg-gradient-to-r from-amber-800 to-amber-600 rounded-2xl transform rotate-1 opacity-60"></div>
+            
+            <!-- Main Book -->
+            <div class="book relative bg-gradient-to-br from-amber-50 to-yellow-50 rounded-2xl shadow-2xl border-8 border-amber-200 overflow-hidden transform transition-all duration-500 hover:scale-[1.02]">
+              
+              <!-- Book Cover (shown on first page) -->
+              <div v-if="currentPage === 0" class="book-page cover-page">
+                <div class="absolute inset-0 bg-gradient-to-br from-purple-400 via-pink-400 to-yellow-400 opacity-90"></div>
+                <div class="relative z-10 h-full flex flex-col items-center justify-center p-12 text-center">
+                  <!-- Cover Image -->
+                  <div v-if="viewingStorybook?.image_url" class="mb-8 relative">
+                    <div class="absolute -inset-4 bg-white bg-opacity-50 rounded-3xl blur-xl"></div>
+                    <img 
+                      :src="API_BASE_URL + viewingStorybook.image_url" 
+                      alt="Storybook Cover" 
+                      class="relative max-h-64 w-auto rounded-2xl shadow-2xl border-4 border-white transform hover:scale-105 transition-transform duration-300" 
+                    />
+                  </div>
+                  
+                  <!-- Title -->
+                  <h1 class="text-5xl font-bold text-white mb-4 drop-shadow-lg leading-tight">
+                    {{ viewingStorybook?.title || viewingStorybook?.prompt || 'Magical Story' }}
+                  </h1>
+                  
+                  <!-- Subtitle -->
+                  <p class="text-xl text-white opacity-90 mb-8 drop-shadow-md">A Draw2Play Adventure</p>
+                  
+                  <!-- Start Reading Button -->
+                  <button 
+                    @click="nextPage"
+                    class="px-8 py-4 bg-white bg-opacity-90 hover:bg-opacity-100 text-purple-700 font-bold text-xl rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 border-4 border-purple-200"
+                  >
+                    Start Reading! 📖
+                  </button>
+                </div>
               </div>
-              <div class="text-center text-neutral-800 text-xl mb-4 leading-relaxed">{{ getPages(viewingStorybook)[currentPage] }}</div>
-              <div class="w-full flex justify-center mb-4">
-                <select v-model="selectedVoice" class="input-field text-center max-w-xs">
-                  <option v-for="voice in curatedVoices" :key="voice.name" :value="voice.name">
-                    {{ voice.label }} ({{ voice.region }})
-                  </option>
-                </select>
+
+              <!-- Story Pages -->
+              <div v-else class="book-page story-page">
+                <div class="h-full flex">
+                  <!-- Left Page (even pages) -->
+                  <div class="page-half left-page">
+                    <div class="page-content">
+                      <!-- Page Image -->
+                      <div v-if="viewingStorybook.images && viewingStorybook.images[currentPage - 1]" class="page-image-container mb-6">
+                        <img 
+                          :src="API_BASE_URL + viewingStorybook.images[currentPage - 1]" 
+                          alt="Story Illustration" 
+                          class="page-illustration"
+                        />
+                      </div>
+                      
+                      <!-- Page Text -->
+                      <div class="page-text">
+                        {{ getPages(viewingStorybook)[currentPage - 1] }}
+                      </div>
+                      
+                      <!-- Page Number -->
+                      <div class="page-number left">{{ currentPage }}</div>
+                    </div>
+                  </div>
+
+                  <!-- Book Spine -->
+                  <div class="book-spine"></div>
+
+                  <!-- Right Page (odd pages) -->
+                  <div class="page-half right-page">
+                    <div class="page-content" v-if="currentPage < getPages(viewingStorybook).length">
+                      <!-- Page Image -->
+                      <div v-if="viewingStorybook.images && viewingStorybook.images[currentPage]" class="page-image-container mb-6">
+                        <img 
+                          :src="API_BASE_URL + viewingStorybook.images[currentPage]" 
+                          alt="Story Illustration" 
+                          class="page-illustration"
+                        />
+                      </div>
+                      
+                      <!-- Page Text -->
+                      <div class="page-text">
+                        {{ getPages(viewingStorybook)[currentPage] }}
+                      </div>
+                      
+                      <!-- Page Number -->
+                      <div class="page-number right">{{ currentPage + 1 }}</div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="flex gap-4 justify-center mt-4">
-                <button @click="playSpeech" :disabled="isSpeaking" class="btn-primary px-6 py-2 text-lg disabled:opacity-50">Play Story</button>
-                <button @click="stopSpeech" :disabled="!isSpeaking" class="btn-secondary px-6 py-2 text-lg disabled:opacity-50">Stop Story</button>
-              </div>
-              <div v-if="resumeWarning" class="text-red-500 text-sm mt-2 text-center font-semibold">{{ resumeWarning }}</div>
             </div>
           </div>
-          <div class="flex justify-between items-center w-full mt-6">
-            <button @click="prevPage" :disabled="currentPage === 0" class="btn-secondary px-6 py-2 text-lg disabled:opacity-50">Previous Page</button>
-            <span class="text-lg font-semibold text-neutral-600">Page {{ currentPage + 1 }} / {{ getPages(viewingStorybook).length || 1 }}</span>
-            <button @click="nextPage" :disabled="currentPage >= (getPages(viewingStorybook).length - 1)" class="btn-secondary px-6 py-2 text-lg disabled:opacity-50">Next Page</button>
+
+          <!-- Navigation Controls -->
+          <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex items-center space-x-6">
+            <!-- Previous Page -->
+            <button 
+              @click="prevPage" 
+              :disabled="currentPage === 0"
+              class="nav-button prev-button"
+              :class="{ 'opacity-50 cursor-not-allowed': currentPage === 0 }"
+            >
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+              </svg>
+              <span class="ml-2">Previous</span>
+            </button>
+
+            <!-- Audio Controls -->
+            <div class="flex items-center space-x-3 bg-white bg-opacity-20 backdrop-blur-sm rounded-full px-6 py-3">
+              <!-- Voice Selection -->
+              <select v-model="selectedVoice" class="bg-transparent text-white text-sm font-semibold focus:outline-none border-r border-white border-opacity-30 pr-3">
+                <option v-for="voice in curatedVoices" :key="voice.name" :value="voice.name" class="text-gray-800">
+                  {{ voice.label }}
+                </option>
+              </select>
+              
+              <!-- Page Mode Selection (only show on story pages) -->
+              <select v-if="currentPage > 0" v-model="selectedPageMode" class="bg-transparent text-white text-sm font-semibold focus:outline-none border-r border-white border-opacity-30 pr-3">
+                <option value="both" class="text-gray-800">Both Pages</option>
+                <option value="left" class="text-gray-800">Left Page</option>
+                <option value="right" class="text-gray-800">Right Page</option>
+              </select>
+              
+              <!-- Play/Stop Buttons -->
+              <button 
+                @click="playSpeech" 
+                :disabled="isSpeaking"
+                class="audio-button play-button"
+                :class="{ 'opacity-50': isSpeaking }"
+              >
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
+              
+              <button 
+                @click="stopSpeech" 
+                :disabled="!isSpeaking"
+                class="audio-button stop-button"
+                :class="{ 'opacity-50': !isSpeaking }"
+              >
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M6 6h12v12H6z"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Next Page -->
+            <button 
+              @click="nextPage" 
+              :disabled="currentPage === 0 ? false : currentPage + 1 >= getPages(viewingStorybook).length"
+              class="nav-button next-button"
+              :class="{ 'opacity-50 cursor-not-allowed': currentPage === 0 ? false : currentPage + 1 >= getPages(viewingStorybook).length }"
+            >
+              <span class="mr-2">Next</span>
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Page Progress Indicator -->
+          <div class="absolute top-8 left-1/2 transform -translate-x-1/2 bg-white bg-opacity-20 backdrop-blur-sm rounded-full px-6 py-2">
+            <div class="text-white text-sm font-semibold">
+              Page {{ currentPage }} of {{ getPages(viewingStorybook).length || 1 }}
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Book Container Styles */
+.book-container {
+  perspective: 1000px;
+}
+
+.book {
+  width: 800px;
+  height: 600px;
+  max-width: 90vw;
+  max-height: 70vh;
+  transform-style: preserve-3d;
+}
+
+.book-page {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.cover-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.story-page {
+  background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%);
+  padding: 0;
+}
+
+.page-half {
+  width: 50%;
+  height: 100%;
+  position: relative;
+}
+
+.left-page {
+  border-right: 1px solid #d97706;
+}
+
+.right-page {
+  border-left: 1px solid #d97706;
+}
+
+.book-spine {
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(to bottom, #92400e, #d97706, #92400e);
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  z-index: 10;
+}
+
+.page-content {
+  padding: 40px 30px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.page-image-container {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.page-illustration {
+  max-height: 200px;
+  max-width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 3px solid white;
+  object-fit: cover;
+}
+
+.page-text {
+  flex: 1;
+  font-size: 18px;
+  line-height: 1.8;
+  color: #374151;
+  text-align: justify;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.page-number {
+  position: absolute;
+  bottom: 20px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #92400e;
+}
+
+.page-number.left {
+  left: 30px;
+}
+
+.page-number.right {
+  right: 30px;
+}
+
+/* Navigation Buttons */
+.nav-button {
+  @apply flex items-center px-6 py-3 bg-white bg-opacity-20 backdrop-blur-sm text-white font-semibold rounded-full hover:bg-opacity-30 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105;
+}
+
+.audio-button {
+  @apply w-10 h-10 bg-white bg-opacity-30 backdrop-blur-sm text-white rounded-full flex items-center justify-center hover:bg-opacity-40 transition-all duration-300 transform hover:scale-110;
+}
+
+/* Animations */
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(180deg); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-float-slow {
+  animation: float-slow 6s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .book {
+    width: 95vw;
+    height: 70vh;
+  }
+  
+  .page-content {
+    padding: 20px 15px;
+  }
+  
+  .page-text {
+    font-size: 16px;
+  }
+  
+  .page-illustration {
+    max-height: 150px;
+  }
+  
+  .nav-button {
+    @apply px-4 py-2 text-sm;
+  }
+}
+
+@media (max-width: 480px) {
+  .book {
+    height: 60vh;
+  }
+  
+  .page-text {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  
+  .page-illustration {
+    max-height: 120px;
+  }
+}
+</style>
