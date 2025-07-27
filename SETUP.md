@@ -161,6 +161,11 @@ If port 3000 is in use:
    ```
 2. Or kill the process using port 3000
 
+## Setting Up Redis
+To setup redis for the prompt filtering run the following docker command:
+```bash
+docker run -d -p 6379:6379 --name redis redis
+```
 ## Next Steps
 
 After successful setup:
@@ -299,6 +304,12 @@ npm run dev
 **Terminal 3 - Frontend Server:**
 ```bash
 npm run dev
+```
+
+**Terminal 4 - Task Queues for Filtering**
+```bash
+cd backend
+node PromptWorker.js
 ```
 
 **Alternative: Start Frontend and Backend Together:**
