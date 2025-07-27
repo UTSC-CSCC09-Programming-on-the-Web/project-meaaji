@@ -1,6 +1,5 @@
-const { Pool } = require("pg");
-const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "../../.env") });
+import {Pool} from "pg"
+import "dotenv/config";
 
 // Database configuration
 const dbConfig = {
@@ -71,7 +70,7 @@ const getClient = async () => {
   return client;
 };
 
-module.exports = {
+export  {
   pool,
   query,
   getClient,

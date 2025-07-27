@@ -1,6 +1,6 @@
-const fs = require("fs");
-const path = require("path");
-const { query } = require("../config/database");
+import fs from "fs";
+import path from "path";
+import { query } from "../config/database.js";
 
 // Create migrations table to track which migrations have been run
 const createMigrationsTable = async () => {
@@ -112,4 +112,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { runMigrations };
+export { runMigrations };

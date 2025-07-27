@@ -1,28 +1,42 @@
-const express = require("express");
-const cors = require("cors");
-const helmet = require("helmet");
-const rateLimit = require("express-rate-limit");
-const dotenv = require("dotenv");
-const jwt = require("jsonwebtoken");
-const cookieParser = require("cookie-parser");
-const Stripe = require("stripe");
-const User = require("./models/User");
-const path = require("path");
-const fetch = (...args) =>
-  import("node-fetch").then(({ default: fetch }) => fetch(...args));
-require("dotenv").config();
-const multer = require("multer");
-const fs = require("fs");
-const Storybook = require("./models/Storybook");
-const { CohereClient } = require("cohere-ai");
-const cohere = new CohereClient({ token: process.env.COHERE_API_KEY });
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import dotenv from "dotenv";
+import jwt from "jsonwebtoken";
+import cookieParser from "cookie-parser";
+import Stripe from "stripe";
+import User from "./models/User.js";
+import path from "path";
+import fetch from "node-fetch";
+dotenv.config();
+import multer from "multer";
+import fs from "fs";
+import Storybook from "./models/Storybook.js";
+import { CohereClient } from "cohere-ai";
+const cohere = new CohereClient({ token: process.env.CO_API_KEY });
+import { Queue, QueueEvents } from "bullmq";
+import { fileURLToPath } from 'url';
 
-const upload = multer({
-  dest: path.join(__dirname, "uploads/"),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+const storybookModerationQueue = new Queue("storybookModeration", {
+  connection: {
+    host: process.env.REDIS_URL || "localhost",
+    port: process.env.REDIS_PORT || 6379,
+  },
 });
 
-const { pool } = require("./config/database");
+const storybookModerationQueueEvents = new QueueEvents("storybookModeration", {  connection: {
+  host: process.env.REDIS_URL || "localhost",
+  port: process.env.REDIS_PORT || 6379,
+},
+});
+
+const upload = multer({
+  dest: path.join(import.meta.dirname, "uploads/"),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
+
+import { pool } from "./config/database.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,8 +44,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const MAX_PAGES = 15;
 
 // Load env from project root
-dotenv.config({ path: path.join(__dirname, "../.env") });
+dotenv.config({ path: path.join(import.meta.dirname, "../.env") });
 
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 // Security middleware
 app.use(helmet());
 
@@ -493,29 +510,55 @@ app.get(
   },
 );
 
-// POST /api/storybooks - create a new storybook
 app.post(
   "/api/storybooks",
   authenticateToken,
   upload.single("image"),
   async (req, res) => {
     try {
+      console.log("[API] Received request to create storybook");
       const user = await User.findById(req.user.id);
-      if (!user) return res.status(404).json({ error: "User not found" });
+      if (!user) {
+        console.warn("[API] User not found:", req.user.id);
+        return res.status(404).json({ error: "User not found" });
+      }
+
       const title = req.body.title;
-      if (!title) return res.status(400).json({ error: "Title required" });
+      if (!title) {
+        console.warn("[API] Missing title in request");
+        return res.status(400).json({ error: "Title required" });
+      }
+
       const prompt = req.body.prompt;
-      if (!prompt) return res.status(400).json({ error: "Prompt required" });
+      if (!prompt) {
+        console.warn("[API] Missing prompt in request");
+        return res.status(400).json({ error: "Prompt required" });
+      }
+
+      console.log(`[API] Adding moderation job for title: "${title}"`);
+      const job = await storybookModerationQueue.add("moderate", { title, prompt });
+
+      console.log(`[API] Waiting for moderation result of job ${job.id}`);
+      const result = await job.waitUntilFinished(storybookModerationQueueEvents);
+      console.log(`[API] Moderation result for job ${job.id}:`, result);
+      if (!result.allowed) {
+        console.warn(`[API] Content not kid friendly for job ${job.id}`);
+        return res.status(400).json({ error: "Uh oh, we don't allow content like that here!" });
+      }
+
       let image_url = null;
       if (req.file) {
         image_url = `/uploads/${req.file.filename}`;
+        console.log("[API] Uploaded image URL:", image_url);
       }
+
       // Compose Cohere prompt
       let coherePrompt = `Write a children's story in 10-15 short pages (1-2 sentences per page), the title of the story is, but don't pass it back to me: '${title}'. The story should be about: "${prompt}". The story should be around 20-30 sentences in total. EXPLICITLY do not include a title, any introduction, explanation, or commentary—just the story itself. Do not start with phrases like 'Sure,' 'Here is...', a title and DO NOT end with the end, simply leave the story as is. Begin directly with the first sentence of the story.`;
       if (image_url) {
         coherePrompt += ` Incorporate the image into the story, but do not mention the image directly.`;
       }
-      // Call Cohere
+      console.log("[API] Sending generation request to Cohere");
+
       let storyText = "";
       try {
         const cohereRes = await cohere.generate({
@@ -525,53 +568,70 @@ app.post(
           temperature: 0.8,
         });
         storyText = cohereRes.generations[0].text;
+        console.log("[API] Received story text from Cohere, processing...");
+
         // Remove any leading meta text before the story
-        storyText = storyText.replace(/^(.*?)(Once upon a time|[A-Z][^\n]*)/, '$2');
+        storyText = storyText.replace(/^(.*?)(Once upon a time|[A-Z][^\n]*)/, "$2");
 
         // --- Post-process to remove title, intro, and 'The End' ---
-        let lines = storyText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-        // Remove first line if it matches the title (case-insensitive, ignoring punctuation)
-        const normalize = (str) => str.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-        if (lines.length && (normalize(lines[0]) === normalize(title) || lines[0].length < 60 && !lines[0].endsWith('.'))) {
+        let lines = storyText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+        const normalize = (str) => str.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+        if (
+          lines.length &&
+          (normalize(lines[0]) === normalize(title) || (lines[0].length < 60 && !lines[0].endsWith(".")))
+        ) {
           lines.shift();
         }
-        // Remove common intro phrases
-        const introPatterns = [/^here( is|'s)/i, /^sure[.!]?/i, /^let'?s begin/i, /^once upon a time/i, /^story:/i, /^title:/i, /^introduction:/i];
-        while (lines.length && introPatterns.some(pat => pat.test(lines[0]))) {
+        const introPatterns = [
+          /^here( is|'s)/i,
+          /^sure[.!]?/i,
+          /^let'?s begin/i,
+          /^once upon a time/i,
+          /^story:/i,
+          /^title:/i,
+          /^introduction:/i,
+        ];
+        while (lines.length && introPatterns.some((pat) => pat.test(lines[0]))) {
           lines.shift();
         }
-        // Remove 'The End' or similar at the end
         if (lines.length && /^the end[.!]?$/i.test(lines[lines.length - 1])) {
           lines.pop();
         }
-        storyText = lines.join('\n');
+        storyText = lines.join("\n");
+        console.log("[API] Story text post-processing complete");
       } catch (error) {
         if (error.statusCode === 429) {
-          return res.status(429).json({ error: 'Cohere rate limit reached. Please try again later.' });
+          console.warn("[API] Cohere rate limit reached");
+          return res.status(429).json({ error: "Cohere rate limit reached. Please try again later." });
         }
-        console.error('Cohere API error:', error);
-        return res.status(500).json({ error: 'Failed to generate storybook', details: error.message });
+        console.error("[API] Cohere API error:", error);
+        return res.status(500).json({ error: "Failed to genereate storybook", details: error.message });
       }
+
       // Split into pages (paragraphs)
-      let pages = storyText.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
-      
-      // For each page, if it has more than 2 sentences, split it into pages of 2 sentences each
+      let pages = storyText.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+
+      // For each page, if more than 2 sentences, split into pages of 2 sentences each
       let finalPages = [];
       for (const page of pages) {
         const sentences = page.match(/[^.!?]+[.!?]+/g) || [page];
         if (sentences.length > 2) {
           for (let i = 0; i < sentences.length; i += 2) {
-            finalPages.push(sentences.slice(i, i + 2).join(' ').trim());
+            finalPages.push(sentences.slice(i, i + 2).join(" ").trim());
           }
         } else {
           finalPages.push(page);
         }
       }
       pages = finalPages;
-      
+
       if (pages.length > MAX_PAGES) pages = pages.slice(0, MAX_PAGES);
+      console.log(`[API] Split story into ${pages.length} pages`);
+
       // Generate a single seed for this storybook
       const seed = Math.floor(Math.random() * 1000000);
+      console.log("[API] Generated seed for images:", seed);
+
       // Generate images for each page
       const images = [];
       let counter = 0;
@@ -579,12 +639,16 @@ app.post(
         for (const pageText of pages) {
           const imageUrl = await generateImageWithStabilityAI(pageText, seed);
           images.push(imageUrl);
-          console.log("Finished generating image number " + counter);
+          console.log(`Finished generating image number ${counter}: ${imageUrl}`);
           counter++;
         }
       } catch (stabilityError) {
-        console.error("Stability AI error:", stabilityError);
-        return res.status(500).json({ error: "Failed to generate images with Stability AI", details: stabilityError.message || stabilityError.toString(), source: "stability" });
+        console.error("[API] Stability AI error:", stabilityError);
+        return res.status(500).json({
+          error: "Failed to generate images with Stability AI",
+          details: stabilityError.message || stabilityError.toString(),
+          source: "stability",
+        });
       }
 
       const storybook = await Storybook.create({
@@ -595,13 +659,20 @@ app.post(
         pages,
         images, // new field
       });
-      console.log('IMAGES ARRAY TO SAVE:', images);
+      console.log("[API] Storybook saved successfully", { storybookId: storybook.id });
+
       res.json({ storybook });
     } catch (error) {
-      console.error("Storybook creation error:", error);
+      const errorMessage = String(error);
+      if (errorMessage.includes(" Content flagged as inappropriate for kids")){
+        console.error("Please refrain from inappropriate content!")
+        let source = error.source || "unknown";
+        res.status(500).json({ error: "Uh Oh we don't allow that type of content here", details: error.message, source });
+      }
+      console.error("[API] Storybook creation error:", error);
       let source = error.source || "unknown";
       if (error.details && error.error && error.error.includes("Cohere")) source = "cohere";
-      res.status(500).json({ error: "Failed to create storybook", details: error.message, source });
+      res.status(500).json({ error: "Failed to generate storybook", details: error.message, source });
     }
   }
 );
@@ -626,7 +697,7 @@ app.delete("/api/storybooks/:id", authenticateToken, async (req, res) => {
     if (!user) return res.status(404).json({ error: "User not found" });
     const id = req.params.id;
     // Only allow deleting user's own storybooks
-    const result = await require('./models/Storybook').deleteById(id, user.id);
+    const result = await Storybook.deleteById(id, user.id);
     if (result) {
       res.json({ success: true });
     } else {
@@ -643,7 +714,7 @@ app.delete("/api/storybooks", authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ error: "User not found" });
-    await require('./models/Storybook').deleteAllByUser(user.id);
+    await Storybook.deleteAllByUser(user.id);
     res.json({ success: true });
   } catch (error) {
     console.error("Delete all storybooks error:", error);
@@ -651,7 +722,7 @@ app.delete("/api/storybooks", authenticateToken, async (req, res) => {
   }
 });
 
-const uploadsPath = path.join(__dirname, "uploads");
+const uploadsPath = path.join(import.meta.dirname, "uploads");
 app.use("/uploads", (req, res, next) => {
   res.header("Access-Control-Allow-Origin", process.env.FRONTEND_URL || "http://localhost:5173");
   res.header("Cross-Origin-Resource-Policy", "same-site");

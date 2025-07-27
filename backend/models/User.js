@@ -1,5 +1,4 @@
-const { query } = require("../config/database");
-const bcrypt = require("bcryptjs");
+import {query} from '../config/database.js'
 
 class User {
   // Create a new user
@@ -191,4 +190,4 @@ class User {
   }
 }
 
-module.exports = User;
+export default User;

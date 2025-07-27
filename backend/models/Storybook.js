@@ -1,5 +1,4 @@
-const { query } = require("../config/database");
-
+import { query } from "../config/database.js"
 class Storybook {
   static async create({ user_id, title, prompt, image_url, pages, images }) {
     const result = await query(
@@ -41,4 +40,4 @@ class Storybook {
   }
 }
 
-module.exports = Storybook; 
+export default Storybook; 

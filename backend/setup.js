@@ -1,6 +1,7 @@
-const { execSync } = require("child_process");
-const fs = require("fs");
-const path = require("path");
+import { execSync } from "child_process";
+import fs from "fs";
+import path from "path";
+import { pool } from "./config/database.js";
 
 async function setup() {
   console.log("🚀 Setting up Draw2StoryPlay project...\n");
@@ -39,7 +40,6 @@ async function setup() {
   // Test database connection
   console.log("🔍 Testing database connection...");
   try {
-    const { pool } = require("./config/database");
     await pool.query("SELECT 1");
     console.log("✓ Database connection successful\n");
   } catch (error) {

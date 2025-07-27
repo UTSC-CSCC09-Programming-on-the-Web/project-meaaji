@@ -70,9 +70,11 @@ const generateStorybook = async () => {
     });
     if (!res.ok) {
       const data = await res.json();
-      throw new Error(data.error || "Failed to generate storybook");
+      console.log("[generateStorybook] Storybook generation failed:", data);
+      throw new Error(data.error || "Failed storybook");
     }
     const data = await res.json();
+    console.log("[generateStorybook] Storybook generated:", data);
     generatedStorybook.value = data.storybook;
     await fetchStorybooks();
   } catch (e: any) {
