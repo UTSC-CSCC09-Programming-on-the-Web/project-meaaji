@@ -1,11 +1,19 @@
 import {Pool} from "pg"
-import "dotenv/config";
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+
+// Resolve path to the root .env
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
+
 
 // Database configuration
 const dbConfig = {
-  user: process.env.DB_USER || "postgres",
-  host: process.env.DB_HOST || "localhost",
-  database: process.env.DB_NAME || "Draw2PlayDB",
+  user: process.env.DB_USER || "",
+  host: process.env.DB_HOST || "",
+  database: process.env.DB_NAME || "",
   password: process.env.DB_PASSWORD || "",
   port: process.env.DB_PORT || 5432,
   // Connection pool settings

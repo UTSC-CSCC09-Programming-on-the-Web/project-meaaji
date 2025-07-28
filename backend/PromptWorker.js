@@ -1,8 +1,8 @@
 import { Worker } from "bullmq";
 import { CohereClient } from "cohere-ai";
 const cohere = new CohereClient({ token: process.env.CO_API_KEY });
-import "dotenv/config";
-
+import dotenv from "dotenv";
+dotenv.config({ path: "../.env" }); // adjust the path based on the file's location
 
 async function isContentKidFriendly(text) {
   console.log("[Moderation] Checking content safety...");
@@ -58,8 +58,8 @@ const storybookModerationWorker = new Worker(
   },
   {
     connection: {
-      host: process.env.REDIS_HOST || "localhost",
-      port: parseInt(process.env.REDIS_PORT) || 6381,
+      host: process.env.REDIS_HOST || "",
+      port: parseInt(process.env.REDIS_PORT) || 6379,
     },
   }
 );

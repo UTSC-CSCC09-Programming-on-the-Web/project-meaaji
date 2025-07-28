@@ -20,13 +20,13 @@ import { fileURLToPath } from 'url';
 
 const storybookModerationQueue = new Queue("storybookModeration", {
   connection: {
-    host: process.env.REDIS_URL || "localhost",
+    host: process.env.REDIS_URL || "",
     port: process.env.REDIS_PORT || 6379,
   },
 });
 
 const storybookModerationQueueEvents = new QueueEvents("storybookModeration", {  connection: {
-  host: process.env.REDIS_URL || "localhost",
+  host: process.env.REDIS_URL || "",
   port: process.env.REDIS_PORT || 6379,
 },
 });
@@ -55,7 +55,7 @@ app.use(helmet());
 // CORS configuration
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: process.env.FRONTEND_URL || "",
     credentials: true,
   }),
 );
@@ -179,7 +179,7 @@ app.use(cookieParser());
 // Google OAuth config
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const REDIRECT_URI = `${process.env.FRONTEND_URL || "http://localhost:5173"}/auth/callback`;
+const REDIRECT_URI = `${process.env.FRONTEND_URL}/auth/callback`;
 
 // JWT utility
 const generateToken = (user) => {
