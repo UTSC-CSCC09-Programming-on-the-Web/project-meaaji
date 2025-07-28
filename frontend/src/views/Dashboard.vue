@@ -20,6 +20,21 @@ const activeTab = ref<'generate' | 'mybooks' | 'newFeature'>("generate");
 // State to manage sidebar visibility
 const isSidebarOpen = ref(false);
 
+// AnimatedDrawings state
+const animationMode = ref<'draw' | 'upload'>('draw');
+const canvasWidth = 600;
+const canvasHeight = 400;
+const isDrawing = ref(false);
+const hasDrawing = ref(false);
+const uploadedImage = ref<string | null>(null);
+const isAnimationProcessing = ref(false);
+const animationProcessingMessage = ref('Preparing AI model...');
+const animationProgress = ref(0);
+const animationResult = ref<any | null>(null);
+const isAnimationPlaying = ref(false);
+const strokeStyle = '#2c3e50';
+const lineWidth = 3;
+
 const fetchStorybooks = async () => {
   try {
     const token = localStorage.getItem("auth_token");
@@ -259,6 +274,223 @@ const toggleSidebar = () => {
 watch(activeTab, () => {
   isSidebarOpen.value = false;
 });
+
+// AnimatedDrawings Methods
+const initCanvas = () => {
+  const canvas = document.querySelector('#animationCanvas') as HTMLCanvasElement;
+  if (!canvas) return;
+  
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  
+  // Set canvas style
+  ctx.strokeStyle = strokeStyle;
+  ctx.lineWidth = lineWidth;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  
+  // Set white background
+  ctx.fillStyle = 'white';
+  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+};
+
+const startDrawing = (event: MouseEvent) => {
+  isDrawing.value = true;
+  const canvas = event.target as HTMLCanvasElement;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  
+  const rect = canvas.getBoundingClientRect();
+  ctx.beginPath();
+  ctx.moveTo(
+    event.clientX - rect.left, 
+    event.clientY - rect.top
+  );
+};
+
+const draw = (event: MouseEvent) => {
+  if (!isDrawing.value) return;
+  
+  const canvas = event.target as HTMLCanvasElement;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  
+  const rect = canvas.getBoundingClientRect();
+  ctx.lineTo(
+    event.clientX - rect.left, 
+    event.clientY - rect.top
+  );
+  ctx.stroke();
+  
+  hasDrawing.value = true;
+};
+
+const stopDrawing = () => {
+  isDrawing.value = false;
+};
+
+const clearCanvas = () => {
+  const canvas = document.querySelector('#animationCanvas') as HTMLCanvasElement;
+  if (!canvas) return;
+  
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  
+  ctx.fillStyle = 'white';
+  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+  
+  hasDrawing.value = false;
+};
+
+const triggerFileInput = () => {
+  const fileInput = document.querySelector('#animationFileInput') as HTMLInputElement;
+  fileInput?.click();
+};
+
+const handleFileSelect = (event: Event) => {
+  const files = (event.target as HTMLInputElement).files;
+  if (files && files[0]) {
+    processFile(files[0]);
+  }
+};
+
+const handleDrop = (event: DragEvent) => {
+  const file = event.dataTransfer?.files[0];
+  if (file) {
+    processFile(file);
+  }
+};
+
+const processFile = (file: File) => {
+  if (!file.type.startsWith('image/')) {
+    alert('Please upload an image file');
+    return;
+  }
+  
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    uploadedImage.value = e.target?.result as string;
+  };
+  reader.readAsDataURL(file);
+};
+
+const clearUpload = () => {
+  uploadedImage.value = null;
+  const fileInput = document.querySelector('#animationFileInput') as HTMLInputElement;
+  if (fileInput) fileInput.value = '';
+};
+
+const createAnimation = async () => {
+  animationResult.value = null;
+  isAnimationProcessing.value = true;
+  animationProgress.value = 0;
+  
+  try {
+    let imageData: string;
+    
+    if (animationMode.value === 'draw') {
+      // Step 1: Convert canvas to image
+      animationProcessingMessage.value = 'Converting drawing to image...';
+      const canvas = document.querySelector('#animationCanvas') as HTMLCanvasElement;
+      imageData = canvas.toDataURL('image/png');
+    } else {
+      // Use uploaded image
+      animationProcessingMessage.value = 'Processing uploaded image...';
+      imageData = uploadedImage.value!;
+    }
+    
+    animationProgress.value = 20;
+    
+    // Step 2: Call Flask API
+    animationProcessingMessage.value = 'AI model analyzing character...';
+    
+    const response = await fetch('http://localhost:5000/api/animate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        image: imageData,
+        motion: 'dab', // Default motion
+        output_format: 'gif'
+      })
+    });
+    
+    animationProgress.value = 60;
+    animationProcessingMessage.value = 'Generating 3D animation...';
+    
+    if (!response.ok) {
+      throw new Error('Animation generation failed');
+    }
+    
+    const result = await response.json();
+    
+    animationProgress.value = 100;
+    animationProcessingMessage.value = 'Complete!';
+    
+    // Save result
+    animationResult.value = result;
+    
+  } catch (error: any) {
+    console.error('Animation generation error:', error);
+    alert('Animation generation failed: ' + error.message);
+  } finally {
+    isAnimationProcessing.value = false;
+  }
+};
+
+const toggleAnimationPlay = () => {
+  const img = document.querySelector('#animationPlayer') as HTMLImageElement;
+  if (!img) return;
+  
+  if (isAnimationPlaying.value) {
+    // Pause GIF (stop at current frame)
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    ctx.drawImage(img, 0, 0);
+    
+    img.src = canvas.toDataURL();
+    isAnimationPlaying.value = false;
+  } else {
+    // Play GIF (restore original URL)
+    img.src = animationResult.value.video_url + '?t=' + Date.now();
+    isAnimationPlaying.value = true;
+  }
+};
+
+const restartAnimation = () => {
+  const img = document.querySelector('#animationPlayer') as HTMLImageElement;
+  if (!img) return;
+  
+  img.src = animationResult.value.video_url + '?t=' + Date.now();
+  isAnimationPlaying.value = true;
+};
+
+const downloadAnimation = () => {
+  const link = document.createElement('a');
+  link.href = animationResult.value.video_url;
+  link.download = 'stickman_animation.gif';
+  link.click();
+};
+
+const resetAnimationApp = () => {
+  animationResult.value = null;
+  isAnimationPlaying.value = false;
+  animationMode.value = 'draw';
+  uploadedImage.value = null;
+  clearCanvas();
+};
+
+// Initialize canvas when switching to animation tab
+watch(activeTab, (newTab) => {
+  if (newTab === 'newFeature') {
+    setTimeout(initCanvas, 100); // Wait for DOM to render
+  }
+});
 </script>
 
 <template>
@@ -470,10 +702,154 @@ watch(activeTab, () => {
 
         <!-- Tab 3: New Feature Page (Blank for now) -->
         <div v-if="activeTab === 'newFeature'">
-          <div class="card p-10 flex flex-col items-center justify-center space-y-8 w-full animate-slide-up min-h-[400px]">
-            <div class="text-4xl font-bold text-primary-800 mb-4 text-center">A New Magic Realm!</div>
-            <p class="text-xl text-neutral-600 text-center">This page is ready for new adventures to be built!</p>
-            <img src="https://placehold.co/300x200/ADD8E6/000000?text=Coming+Soon!" alt="Coming Soon Placeholder" class="rounded-xl shadow-lg border-4 border-white animate-pulse-grow" />
+          <!-- AnimatedDrawings Component -->
+          <div class="card p-10 animate-slide-up">
+            <div class="text-center mb-8">
+              <div class="text-4xl font-bold text-primary-800 mb-4">🎨 Stickman Animator</div>
+              <p class="text-xl text-neutral-600">Draw your stickman and watch it come to life!</p>
+            </div>
+            
+            <!-- Mode Selection -->
+            <div v-if="!isAnimationProcessing && !animationResult" class="mode-selection mb-8">
+              <div class="flex justify-center gap-4 mb-6">
+                <button 
+                  @click="animationMode = 'draw'" 
+                  :class="{ 'bg-primary-500 text-white': animationMode === 'draw', 'bg-primary-100 text-primary-700': animationMode !== 'draw' }"
+                  class="px-6 py-3 rounded-xl font-bold text-lg transition-all duration-300 hover:transform hover:scale-105 flex items-center gap-2"
+                >
+                  ✏️ Draw
+                </button>
+                <button 
+                  @click="animationMode = 'upload'" 
+                  :class="{ 'bg-primary-500 text-white': animationMode === 'upload', 'bg-primary-100 text-primary-700': animationMode !== 'upload' }"
+                  class="px-6 py-3 rounded-xl font-bold text-lg transition-all duration-300 hover:transform hover:scale-105 flex items-center gap-2"
+                >
+                  📁 Upload
+                </button>
+              </div>
+            </div>
+            
+            <!-- Drawing Section -->
+            <div v-if="!isAnimationProcessing && !animationResult && animationMode === 'draw'" class="drawing-section mb-8">
+              <h3 class="text-2xl font-bold text-primary-700 mb-4 text-center">Draw your stickman!</h3>
+              <div class="flex justify-center mb-6">
+                <div class="border-4 border-primary-300 rounded-xl overflow-hidden shadow-lg">
+                  <canvas 
+                    id="animationCanvas"
+                    :width="canvasWidth" 
+                    :height="canvasHeight"
+                    @mousedown="startDrawing"
+                    @mousemove="draw"
+                    @mouseup="stopDrawing"
+                    @mouseleave="stopDrawing"
+                    class="block cursor-crosshair bg-white"
+                  ></canvas>
+                </div>
+              </div>
+              
+              <div class="flex justify-center gap-4 mb-4">
+                <button @click="clearCanvas" class="btn-secondary">🗑️ Clear</button>
+                <button @click="createAnimation" class="btn-primary" :disabled="!hasDrawing">
+                  ✨ Create Animation
+                </button>
+              </div>
+              
+              <div class="text-center">
+                <p class="text-primary-600 font-semibold">💡 Tip: Make sure to draw head, body, arms, and legs distinctly!</p>
+              </div>
+            </div>
+
+            <!-- Upload Section -->
+            <div v-if="!isAnimationProcessing && !animationResult && animationMode === 'upload'" class="upload-section mb-8">
+              <h3 class="text-2xl font-bold text-primary-700 mb-4 text-center">Upload your drawing!</h3>
+              
+              <div class="upload-container mb-6">
+                <div 
+                  class="upload-area border-4 border-dashed border-primary-300 rounded-xl p-8 cursor-pointer transition-all duration-300 hover:border-primary-500 hover:bg-primary-50"
+                  @click="triggerFileInput" 
+                  @dragover.prevent 
+                  @drop.prevent="handleDrop"
+                >
+                  <input 
+                    id="animationFileInput"
+                    type="file" 
+                    accept="image/*" 
+                    @change="handleFileSelect"
+                    class="hidden"
+                  >
+                  <div v-if="!uploadedImage" class="text-center">
+                    <div class="text-6xl mb-4">📁</div>
+                    <p class="text-lg font-semibold text-primary-700 mb-2">Click to upload or drag & drop an image</p>
+                    <p class="text-sm text-neutral-500">Supports PNG, JPG, GIF files</p>
+                  </div>
+                  <div v-else class="text-center">
+                    <img :src="uploadedImage" alt="Uploaded drawing" class="max-w-full max-h-64 rounded-lg shadow-lg border-4 border-white mx-auto mb-4">
+                    <button @click.stop="clearUpload" class="btn-secondary btn-small">❌ Remove</button>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="flex justify-center mb-4">
+                <button @click="createAnimation" class="btn-primary" :disabled="!uploadedImage">
+                  ✨ Create Animation
+                </button>
+              </div>
+              
+              <div class="text-center">
+                <p class="text-primary-600 font-semibold">💡 Tip: Works best with clear drawings of stick figures or simple characters!</p>
+              </div>
+            </div>
+
+            <!-- Processing Screen -->
+            <div v-if="isAnimationProcessing" class="processing-section text-center py-12">
+              <div class="loading-spinner mx-auto mb-6"></div>
+              <h3 class="text-3xl font-bold text-primary-700 mb-4">🤖 AI is generating animation...</h3>
+              <p class="text-lg text-neutral-600 mb-6">{{ animationProcessingMessage }}</p>
+              <div class="progress-bar bg-neutral-200 rounded-full h-4 overflow-hidden max-w-md mx-auto">
+                <div class="bg-gradient-to-r from-primary-500 to-accent-500 h-full transition-all duration-500" :style="{ width: animationProgress + '%' }"></div>
+              </div>
+            </div>
+
+            <!-- Animation Result Screen -->
+            <div v-if="animationResult && !isAnimationProcessing" class="result-section text-center">
+              <h3 class="text-3xl font-bold text-primary-700 mb-6">🎉 Animation Complete!</h3>
+              
+              <div class="animation-player mb-8">
+                <div class="flex justify-center mb-6">
+                  <div class="border-4 border-accent-400 rounded-xl overflow-hidden shadow-xl">
+                    <img 
+                      id="animationPlayer"
+                      :src="animationResult.video_url" 
+                      alt="Generated animation"
+                      class="block max-w-full h-auto bg-white"
+                    />
+                  </div>
+                </div>
+                
+                <div class="flex justify-center gap-4 mb-6">
+                  <button @click="toggleAnimationPlay" class="btn-primary flex items-center gap-2">
+                    {{ isAnimationPlaying ? '⏸️ Pause' : '▶️ Play' }}
+                  </button>
+                  <button @click="restartAnimation" class="btn-secondary flex items-center gap-2">
+                    🔄 Restart
+                  </button>
+                  <button @click="downloadAnimation" class="bg-accent-500 hover:bg-accent-600 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 hover:transform hover:scale-105 flex items-center gap-2">
+                    💾 Download
+                  </button>
+                </div>
+                
+                <div class="bg-primary-50 rounded-xl p-6 border-2 border-primary-200">
+                  <p class="text-primary-700 font-semibold">📊 Processing time: {{ animationResult.processing_time }} seconds</p>
+                  <p class="text-primary-700 font-semibold">🎬 Frame count: {{ animationResult.frame_count }} frames</p>
+                </div>
+              </div>
+
+              <div class="border-t-2 border-primary-200 pt-6">
+                <button @click="resetAnimationApp" class="btn-outline">
+                  🎨 Create New Animation
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -852,6 +1228,74 @@ watch(activeTab, () => {
   
   .page-illustration {
     max-height: 120px;
+  }
+}
+
+/* AnimatedDrawings Styles */
+.upload-area {
+  transition: all 0.3s ease;
+}
+
+.upload-area:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(52, 152, 219, 0.2);
+}
+
+#animationCanvas {
+  transition: all 0.3s ease;
+}
+
+#animationCanvas:hover {
+  box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3);
+}
+
+.btn-small {
+  @apply px-4 py-2 text-sm font-semibold;
+}
+
+.processing-section .loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 6px solid #ecf0f1;
+  border-top: 6px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.progress-bar {
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.animation-player img {
+  max-width: 500px;
+  max-height: 400px;
+  transition: all 0.3s ease;
+}
+
+.animation-player img:hover {
+  transform: scale(1.02);
+}
+
+/* Responsive AnimatedDrawings */
+@media (max-width: 768px) {
+  #animationCanvas {
+    max-width: 100%;
+    height: auto;
+  }
+  
+  .mode-selection .flex {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .animation-player img {
+    max-width: 100%;
+    max-height: 300px;
   }
 }
 </style>
