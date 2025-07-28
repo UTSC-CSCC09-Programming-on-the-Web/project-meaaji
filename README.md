@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Draw2StoryPlay
 
 ## 👥 Team Members
