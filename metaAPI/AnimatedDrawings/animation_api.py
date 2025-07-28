@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 # Configuration
 UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'outputs'
-PYTHON_PATH = '/opt/anaconda3/envs/animated_drawings_38/bin/python'
+PYTHON_PATH = r'C:\Users\16474\AppData\Local\Programs\Python\Python311\python.exe'
 SCRIPT_PATH = 'examples/image_to_animation.py'
 
 # Create folders
@@ -92,7 +92,7 @@ def create_animation():
         
         # Set PYTHONPATH
         env = os.environ.copy()
-        env['PYTHONPATH'] = '/Users/jisunghan/metaDrawingtest/AnimatedDrawings:' + env.get('PYTHONPATH', '')
+        env['PYTHONPATH'] = r'C:\Users\16474\Desktop\Third Year\CSCC09\project-meaaji\metaAPI\AnimatedDrawings;' + env.get('PYTHONPATH', '')
         
         cmd = [
             PYTHON_PATH,
