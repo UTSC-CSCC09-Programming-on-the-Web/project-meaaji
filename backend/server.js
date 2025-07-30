@@ -22,13 +22,13 @@ const __dirname = path.dirname(__filename);
 
 const storybookModerationQueue = new Queue("storybookModeration", {
   connection: {
-    host: process.env.REDIS_URL || "",
+    host: process.env.REDIS_HOST || "redis",
     port: process.env.REDIS_PORT || 6379,
   },
 });
 
 const storybookModerationQueueEvents = new QueueEvents("storybookModeration", {  connection: {
-  host: process.env.REDIS_URL || "",
+  host: process.env.REDIS_HOST || "redis",
   port: process.env.REDIS_PORT || 6379,
 },
 });
