@@ -64,6 +64,40 @@ services:
       - draw2play_network
     restart: unless-stopped
 
+  # Prompt Worker (separate from main backend)
+  promptworker:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: draw2play_promptworker
+    environment:
+      - NODE_ENV=production
+      - DB_USER=postgres
+      - DB_HOST=postgres
+      - DB_NAME=Draw2PlayDB
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_PORT=5432
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - MONTHLY_PRICE_ID=${MONTHLY_PRICE_ID}
+      - CO_API_KEY=${CO_API_KEY}
+      - STABILITY_API_KEY=${STABILITY_API_KEY}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - FRONTEND_URL=${FRONTEND_URL}
+    volumes:
+      - backend_uploads:/app/uploads
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - draw2play_network
+    restart: unless-stopped
+    command: ["node", "PromptWorker.js"]
+
   # Animation API
   animation:
     build:
@@ -81,14 +115,17 @@ services:
       - draw2play_network
     restart: unless-stopped
 
-  # Frontend
+  # Frontend (Development mode - matches your npm run dev)
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile.frontend
+      dockerfile: Dockerfile.frontend.dev
     container_name: draw2play_frontend
     ports:
-      - "80:80"
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     depends_on:
       - backend
     networks:
@@ -100,8 +137,8 @@ services:
     image: nginx:alpine
     container_name: draw2play_nginx
     ports:
-      - "443:443"
       - "80:80"
+      - "443:443"
     volumes:
       - ./nginx-proxy.conf:/etc/nginx/nginx.conf
       - ./ssl:/etc/nginx/ssl

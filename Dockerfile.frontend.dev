@@ -1,0 +1,19 @@
+# Frontend Development Dockerfile (matches your current setup)
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY frontend/package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy source code
+COPY frontend/ ./
+
+# Expose port 5173 (Vite dev server port)
+EXPOSE 5173
+
+# Start the development server (matches your npm run dev)
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"] 

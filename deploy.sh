@@ -64,7 +64,7 @@ docker-compose up --build -d
 
 # Wait for services to be ready
 print_status "Waiting for services to be ready..."
-sleep 30
+sleep 45
 
 # Check if services are running
 print_status "Checking service status..."
@@ -93,7 +93,7 @@ else
     print_warning "⚠️  Animation API health check failed"
 fi
 
-# Check frontend
+# Check frontend (development server)
 if curl -f http://localhost &> /dev/null; then
     print_status "✅ Frontend is healthy"
 else
@@ -118,10 +118,19 @@ print_status "🎉 Deployment completed!"
 print_status "Application is available at: http://localhost"
 print_status "Backend API: http://localhost:3000"
 print_status "Animation API: http://localhost:5000"
+print_status "Frontend Dev Server: http://localhost:5173"
 
 echo ""
+print_status "📋 Next Steps:"
+echo "1. Set up Stripe webhook (if not already done):"
+echo "   stripe listen --forward-to localhost:3000/webhook"
+echo "2. Copy the webhook secret to your .env file"
+echo "3. Test the application at http://localhost"
+echo ""
+
 print_status "Useful commands:"
 echo "  docker-compose logs -f [service]  # View logs for a specific service"
 echo "  docker-compose down               # Stop all services"
 echo "  docker-compose restart [service]  # Restart a specific service"
-echo "  docker-compose ps                 # Check service status" 
+echo "  docker-compose ps                 # Check service status"
+echo "  docker-compose logs -f frontend   # View frontend logs (Vite dev server)" 
