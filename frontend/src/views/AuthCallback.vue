@@ -46,6 +46,7 @@ onMounted(async () => {
       
       // Send success message to parent window
       if (window.opener) {
+        console.log("🔐 Sending OAUTH_SUCCESS message to parent window");
         window.opener.postMessage(
           {
             type: "OAUTH_SUCCESS",
@@ -53,9 +54,11 @@ onMounted(async () => {
           },
           "*",
         );
+        console.log("🔐 Closing popup window");
         window.close();
       } else {
         // Fallback for direct navigation
+        console.log("🔐 No opener window, redirecting directly");
         if (authData.user.subscriptionStatus === "active") {
           window.location.href = "/dashboard";
         } else {

@@ -91,6 +91,7 @@ export function useAuth() {
         
         if (event.data && event.data.type === 'OAUTH_SUCCESS') {
           console.log("🔐 OAuth success message received!");
+          console.log("🔐 Auth data:", event.data.payload);
           popup?.close();
           handleAuthSuccess(event.data.payload, isSignup);
           window.removeEventListener("message", handleCallback);
@@ -101,6 +102,8 @@ export function useAuth() {
           alert("Authentication failed. Please try again.");
           isLoading.value = false;
           window.removeEventListener("message", handleCallback);
+        } else {
+          console.log("🔐 Received non-OAuth message:", event.data);
         }
       };
 
