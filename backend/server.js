@@ -424,8 +424,11 @@ app.get("/auth/callback", async (req, res) => {
       return res.status(400).json({ error: "Authorization code is required" });
     }
     
+    console.log("🔐 About to start token exchange...");
+    
     // Exchange code for token
-    console.log("🔐 Starting token exchange with Google");
+    try {
+      console.log("🔐 Starting token exchange with Google");
     console.log("🔐 Using redirect URI:", REDIRECT_URI);
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
@@ -445,6 +448,10 @@ app.get("/auth/callback", async (req, res) => {
         .json({
           error: tokenData.error_description || "Token exchange failed",
         });
+    } catch (error) {
+      console.error("🔐 Token exchange error:", error);
+      throw error;
+    }
     
     // Get user info
     const userResponse = await fetch(
@@ -462,6 +469,8 @@ app.get("/auth/callback", async (req, res) => {
     // Upsert user in PostgreSQL
     console.log("🔐 Looking up user by Google ID:", userData.id);
     let user = await User.findByGoogleId(userData.id);
+    console.log("🔐 User lookup result:", { found: !!user, isNewUser: !user });
+    console.log("🔐 User object after lookup:", user ? { id: user.id, email: user.email } : null);
     const isNewUser = !user;
     if (!user) {
       user = await User.create({
@@ -484,6 +493,8 @@ app.get("/auth/callback", async (req, res) => {
       user = await User.findById(user.id);
       console.log("🔐 User retrieved from database:", user.id);
       console.log("🔐 User object:", { id: user.id, email: user.email, display_name: user.display_name });
+      console.log("🔐 User object type:", typeof user);
+      console.log("🔐 User object keys:", Object.keys(user || {}));
     }
     
     console.log("🔐 About to generate JWT for user:", user.id);
@@ -587,7 +598,10 @@ app.get("/auth/callback", async (req, res) => {
       console.log("🔐 OAuth callback HTML response sent");
     }
   } catch (error) {
-    console.error("OAuth callback error:", error);
+    console.error("🔐 OAuth callback error:", error);
+    console.error("🔐 Error stack:", error.stack);
+    console.error("🔐 Error message:", error.message);
+    console.error("🔐 Error name:", error.name);
     const errorHtml = `
       <!DOCTYPE html>
       <html>
