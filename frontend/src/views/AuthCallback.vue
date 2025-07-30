@@ -8,113 +8,48 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 onMounted(async () => {
   try {
-    const data = route.query.data as string;
     const code = route.query.code as string;
+    const state = route.query.state as string;
     const error = route.query.error as string;
 
     if (error) {
       throw new Error(error);
     }
 
-    // If we have a code but no data, we need to process the OAuth code
-    if (code && !data) {
-      console.log("🔐 Auth callback: Received OAuth code, processing...");
-      
-      // Call the backend to exchange the code for auth data
-      const response = await fetch(`${API_BASE_URL}/auth/google/callback`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          code: code,
-          state: route.query.state || ''
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("🔐 Auth callback: Backend error response:", errorText);
-        throw new Error(`Failed to exchange OAuth code: ${response.statusText}`);
-      }
-
-      const authData = await response.json();
-      console.log("🔐 Auth callback: Received auth data from backend", authData);
-
-      // Store token and user data
-      localStorage.setItem("auth_token", authData.token);
-      
-      // Store the OAuth result in localStorage for parent window to pick up
-      console.log("🔐 Storing OAuth result in localStorage");
-      const oauthResult = JSON.stringify({
-        type: 'OAUTH_SUCCESS',
-        payload: authData,
-        timestamp: Date.now()
-      });
-      localStorage.setItem('oauth_result', oauthResult);
-      console.log("🔐 OAuth result stored:", oauthResult);
-      
-      // Also try sessionStorage as backup
-      sessionStorage.setItem('oauth_result', oauthResult);
-      console.log("🔐 OAuth result also stored in sessionStorage");
-      
-      // Try to redirect parent window directly
-      console.log("🔐 Window opener check:", !!window.opener);
-      console.log("🔐 Window opener:", window.opener);
-      
-      if (window.opener) {
-        console.log("🔐 Redirecting parent window to subscribe page");
-        try {
-          // Store token in parent window's localStorage
-          window.opener.localStorage.setItem("auth_token", authData.token);
-          console.log("🔐 Token stored in parent window");
-          
-          // Redirect parent window
-          window.opener.location.href = "/subscribe";
-          console.log("🔐 Parent window redirected");
-          
-          // Close popup
-          setTimeout(() => {
-            console.log("🔐 Closing popup window");
-            window.close();
-          }, 1000);
-        } catch (error) {
-          console.log("🔐 Failed to redirect parent window:", error);
-          // Fallback: redirect current window
-          window.location.href = "/subscribe";
-        }
-      } else {
-        // Fallback for direct navigation
-        console.log("🔐 No opener window, redirecting directly");
-        window.location.href = "/subscribe";
-      }
-      return;
+    if (!code) {
+      throw new Error("No authorization code received");
     }
 
-    if (!data) {
-      throw new Error("No auth data or OAuth code received");
+    // Exchange code for token
+    const response = await fetch(`${API_BASE_URL}/auth/google/callback`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ code, state }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Authentication failed");
     }
 
-    // Parse the auth data
-    const authData = JSON.parse(decodeURIComponent(data));
-    console.log("🔐 Auth callback: Received auth data", authData);
-
-    // Store token and user data
-    localStorage.setItem("auth_token", authData.token);
-    
     // Send success message to parent window
     if (window.opener) {
       window.opener.postMessage(
         {
           type: "OAUTH_SUCCESS",
-          payload: authData,
+          payload: data,
         },
-        "*",
+        window.location.origin,
       );
       window.close();
     } else {
       // Fallback for direct navigation
-      if (authData.user.subscriptionStatus === "active") {
+      localStorage.setItem("auth_token", data.token);
+      if (data.user.subscriptionStatus === "active") {
         window.location.href = "/dashboard";
       } else {
         window.location.href = "/subscribe";
