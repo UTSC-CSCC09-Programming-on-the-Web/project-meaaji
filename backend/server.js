@@ -267,33 +267,41 @@ app.get("/api", (req, res) => {
 
 // --- API Endpoints ---
 
-// Simple test route - should always work
-app.get("/ping", (req, res) => {
-  console.log("🏓 Ping route hit");
-  res.json({ message: "pong", timestamp: new Date().toISOString() });
-});
+console.log("🔧 Registering API routes...");
 
-// Test route without User model dependency
-app.get("/auth/simple", (req, res) => {
-  console.log("🔐 Simple auth route hit");
-  res.json({ message: "Simple auth route working!", timestamp: new Date().toISOString() });
-});
-
-// Debug route - test if server is loading routes
-app.get("/debug", (req, res) => {
-  console.log("🔍 Debug route hit");
-  res.json({ 
-    message: "Debug route working!",
-    routes: ["/auth/test", "/auth/google", "/auth/callback"],
-    timestamp: new Date().toISOString()
+try {
+  // Simple test route - should always work
+  app.get("/ping", (req, res) => {
+    console.log("🏓 Ping route hit");
+    res.json({ message: "pong", timestamp: new Date().toISOString() });
   });
-});
 
-// Test route
-app.get("/auth/test", (req, res) => {
-  console.log("🧪 Test route hit");
-  res.json({ message: "Auth test route working!" });
-});
+  // Test route without User model dependency
+  app.get("/auth/simple", (req, res) => {
+    console.log("🔐 Simple auth route hit");
+    res.json({ message: "Simple auth route working!", timestamp: new Date().toISOString() });
+  });
+
+  // Debug route - test if server is loading routes
+  app.get("/debug", (req, res) => {
+    console.log("🔍 Debug route hit");
+    res.json({ 
+      message: "Debug route working!",
+      routes: ["/auth/test", "/auth/google", "/auth/callback"],
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // Test route
+  app.get("/auth/test", (req, res) => {
+    console.log("🧪 Test route hit");
+    res.json({ message: "Auth test route working!" });
+  });
+
+  console.log("✅ API routes registered successfully");
+} catch (error) {
+  console.error("❌ Error registering API routes:", error);
+}
 
 // 1. Start Google OAuth
 app.get("/auth/google", (req, res) => {
