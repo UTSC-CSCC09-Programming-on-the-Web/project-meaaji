@@ -389,6 +389,10 @@ app.get("/auth/google", (req, res) => {
 
 // 2. Google OAuth callback (GET - serves frontend component)
 app.get("/auth/callback", (req, res) => {
+  console.log("🔐 GET /auth/callback hit with URL:", req.url);
+  console.log("🔐 Query parameters:", req.query);
+  console.log("🔐 Redirecting to:", `${process.env.FRONTEND_URL}/auth/callback${req.url.replace('/auth/callback', '')}`);
+  
   // This route should serve the frontend Vue component
   // The frontend will handle the OAuth code and call the POST endpoint
   res.redirect(`${process.env.FRONTEND_URL}/auth/callback${req.url.replace('/auth/callback', '')}`);
