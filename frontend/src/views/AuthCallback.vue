@@ -45,6 +45,9 @@ onMounted(async () => {
       localStorage.setItem("auth_token", authData.token);
       
       // Send success message to parent window
+      console.log("🔐 Window opener check:", !!window.opener);
+      console.log("🔐 Window opener:", window.opener);
+      
       if (window.opener) {
         console.log("🔐 Sending OAUTH_SUCCESS message to parent window");
         window.opener.postMessage(
@@ -54,16 +57,22 @@ onMounted(async () => {
           },
           "*",
         );
-        console.log("🔐 Closing popup window");
-        window.close();
+        console.log("🔐 Message sent, waiting 2 seconds before closing...");
+        setTimeout(() => {
+          console.log("🔐 Closing popup window");
+          window.close();
+        }, 2000);
       } else {
         // Fallback for direct navigation
         console.log("🔐 No opener window, redirecting directly");
-        if (authData.user.subscriptionStatus === "active") {
-          window.location.href = "/dashboard";
-        } else {
-          window.location.href = "/subscribe";
-        }
+        console.log("🔐 Waiting 3 seconds before redirect...");
+        setTimeout(() => {
+          if (authData.user.subscriptionStatus === "active") {
+            window.location.href = "/dashboard";
+          } else {
+            window.location.href = "/subscribe";
+          }
+        }, 3000);
       }
       return;
     }
