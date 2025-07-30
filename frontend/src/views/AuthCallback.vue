@@ -9,14 +9,64 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 onMounted(async () => {
   try {
     const data = route.query.data as string;
+    const code = route.query.code as string;
     const error = route.query.error as string;
 
     if (error) {
       throw new Error(error);
     }
 
+    // If we have a code but no data, we need to process the OAuth code
+    if (code && !data) {
+      console.log("🔐 Auth callback: Received OAuth code, processing...");
+      
+      // Call the backend to exchange the code for auth data
+      const response = await fetch(`${API_BASE_URL}/auth/google/callback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          code: code,
+          state: route.query.state || ''
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("🔐 Auth callback: Backend error response:", errorText);
+        throw new Error(`Failed to exchange OAuth code: ${response.statusText}`);
+      }
+
+      const authData = await response.json();
+      console.log("🔐 Auth callback: Received auth data from backend", authData);
+
+      // Store token and user data
+      localStorage.setItem("auth_token", authData.token);
+      
+      // Send success message to parent window
+      if (window.opener) {
+        window.opener.postMessage(
+          {
+            type: "OAUTH_SUCCESS",
+            payload: authData,
+          },
+          "*",
+        );
+        window.close();
+      } else {
+        // Fallback for direct navigation
+        if (authData.user.subscriptionStatus === "active") {
+          window.location.href = "/dashboard";
+        } else {
+          window.location.href = "/subscribe";
+        }
+      }
+      return;
+    }
+
     if (!data) {
-      throw new Error("No auth data received");
+      throw new Error("No auth data or OAuth code received");
     }
 
     // Parse the auth data
