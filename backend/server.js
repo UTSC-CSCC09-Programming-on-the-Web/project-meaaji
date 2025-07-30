@@ -314,28 +314,37 @@ app.get("/auth/callback/test", (req, res) => {
     </head>
     <body>
       <script>
-        console.log('🔐 Test OAuth callback: Sending test message');
-        try {
-          window.opener.postMessage({
-            type: 'OAUTH_SUCCESS',
-            payload: {
-              success: true,
-              user: {
-                id: 'test-123',
-                email: 'test@test.com',
-                name: 'Test User',
-                picture: 'https://example.com/pic.jpg',
-                subscriptionStatus: 'inactive',
-                isNewUser: true
-              },
-              token: 'test-token-123',
-              isSignup: true
+        console.log('🔐 Test OAuth callback: Starting test message process');
+        
+        // Add delay to simulate real OAuth callback
+        setTimeout(() => {
+          console.log('🔐 Test OAuth callback: Attempting to send test message');
+          try {
+            if (window.opener) {
+              window.opener.postMessage({
+                type: 'OAUTH_SUCCESS',
+                payload: {
+                  success: true,
+                  user: {
+                    id: 'test-123',
+                    email: 'test@test.com',
+                    name: 'Test User',
+                    picture: 'https://example.com/pic.jpg',
+                    subscriptionStatus: 'inactive',
+                    isNewUser: true
+                  },
+                  token: 'test-token-123',
+                  isSignup: true
+                }
+              }, '*');
+              console.log('🔐 Test OAuth callback: Test message sent successfully');
+            } else {
+              console.error('🔐 Test OAuth callback: window.opener is null');
             }
-          }, '*');
-          console.log('🔐 Test OAuth callback: Test message sent');
-        } catch (error) {
-          console.error('🔐 Test OAuth callback: Error sending message:', error);
-        }
+          } catch (error) {
+            console.error('🔐 Test OAuth callback: Error sending message:', error);
+          }
+        }, 500);
       </script>
       <p>Test OAuth callback complete! You can close this window.</p>
     </body>
@@ -437,7 +446,7 @@ app.get("/auth/callback", async (req, res) => {
       </head>
       <body>
         <script>
-          console.log('🔐 OAuth callback: Sending success message');
+          console.log('🔐 OAuth callback: Starting message sending process');
           
           // Try multiple approaches to send the message
           const message = {
@@ -457,39 +466,52 @@ app.get("/auth/callback", async (req, res) => {
             }
           };
 
-          // Method 1: Try with wildcard origin
-          try {
-            window.opener.postMessage(message, '*');
-            console.log('🔐 OAuth callback: Message sent with wildcard origin');
-          } catch (error) {
-            console.error('🔐 OAuth callback: Error with wildcard origin:', error);
-          }
+          // Add a small delay to ensure the parent window is ready
+          setTimeout(() => {
+            console.log('🔐 OAuth callback: Attempting to send message after delay');
+            
+            // Method 1: Try with wildcard origin
+            try {
+              if (window.opener) {
+                window.opener.postMessage(message, '*');
+                console.log('🔐 OAuth callback: Message sent with wildcard origin');
+              } else {
+                console.error('🔐 OAuth callback: window.opener is null');
+              }
+            } catch (error) {
+              console.error('🔐 OAuth callback: Error with wildcard origin:', error);
+            }
 
-          // Method 2: Try with specific origin
-          try {
-            window.opener.postMessage(message, '${process.env.FRONTEND_URL}');
-            console.log('🔐 OAuth callback: Message sent with specific origin');
-          } catch (error) {
-            console.error('🔐 OAuth callback: Error with specific origin:', error);
-          }
+            // Method 2: Try with specific origin
+            try {
+              if (window.opener) {
+                window.opener.postMessage(message, '${process.env.FRONTEND_URL}');
+                console.log('🔐 OAuth callback: Message sent with specific origin');
+              }
+            } catch (error) {
+              console.error('🔐 OAuth callback: Error with specific origin:', error);
+            }
 
-          // Method 3: Try with parent origin
-          try {
-            window.opener.postMessage(message, window.location.origin);
-            console.log('🔐 OAuth callback: Message sent with parent origin');
-          } catch (error) {
-            console.error('🔐 OAuth callback: Error with parent origin:', error);
-          }
+            // Method 3: Try with parent origin
+            try {
+              if (window.opener) {
+                window.opener.postMessage(message, window.location.origin);
+                console.log('🔐 OAuth callback: Message sent with parent origin');
+              }
+            } catch (error) {
+              console.error('🔐 OAuth callback: Error with parent origin:', error);
+            }
 
-          // Store in localStorage as fallback
-          try {
-            localStorage.setItem('oauth_result', JSON.stringify(message));
-            console.log('🔐 OAuth callback: Message stored in localStorage');
-          } catch (error) {
-            console.error('🔐 OAuth callback: Error storing in localStorage:', error);
-          }
+            // Store in localStorage as fallback
+            try {
+              localStorage.setItem('oauth_result', JSON.stringify(message));
+              console.log('🔐 OAuth callback: Message stored in localStorage');
+            } catch (error) {
+              console.error('🔐 OAuth callback: Error storing in localStorage:', error);
+            }
 
-          console.log('🔐 OAuth callback: All methods attempted');
+            console.log('🔐 OAuth callback: All methods attempted');
+          }, 500);
         </script>
         <p>Authentication complete! You can close this window.</p>
       </body>
