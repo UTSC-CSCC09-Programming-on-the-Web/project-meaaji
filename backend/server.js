@@ -460,6 +460,7 @@ app.get("/auth/callback", async (req, res) => {
         .json({ error: "Failed to fetch user information" });
     
     // Upsert user in PostgreSQL
+    console.log("🔐 Looking up user by Google ID:", userData.id);
     let user = await User.findByGoogleId(userData.id);
     const isNewUser = !user;
     if (!user) {
@@ -482,6 +483,7 @@ app.get("/auth/callback", async (req, res) => {
       console.log("🔐 User profile updated");
       user = await User.findById(user.id);
       console.log("🔐 User retrieved from database:", user.id);
+      console.log("🔐 User object:", { id: user.id, email: user.email, display_name: user.display_name });
     }
     
     console.log("🔐 About to generate JWT for user:", user.id);
