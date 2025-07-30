@@ -41,11 +41,12 @@ class View:
         """ Takes in a view dictionary from mvc config file and returns the appropriate view. """
         # Force use of MesaView for headless rendering in Docker environment
         # Check if we're in a headless environment (no DISPLAY or using OSMesa)
-        if (os.environ.get('DISPLAY') is None or 
-            os.environ.get('PYOPENGL_PLATFORM') == 'osmesa' or 
-            view_cfg.use_mesa):
-            from animated_drawings.view.mesa_view import MesaView
-            return MesaView(view_cfg)
-        else:
-            from animated_drawings.view.window_view import WindowView
-            return WindowView(view_cfg)
+        display = os.environ.get('DISPLAY')
+        pyopengl_platform = os.environ.get('PYOPENGL_PLATFORM')
+        use_mesa = getattr(view_cfg, 'use_mesa', False)
+        
+        print(f"DEBUG: DISPLAY={display}, PYOPENGL_PLATFORM={pyopengl_platform}, use_mesa={use_mesa}")
+        
+        # Always use MesaView in Docker environment to avoid OpenGL issues
+        from animated_drawings.view.mesa_view import MesaView
+        return MesaView(view_cfg)
