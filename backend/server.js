@@ -267,6 +267,12 @@ app.get("/api", (req, res) => {
 
 // --- API Endpoints ---
 
+// Test route
+app.get("/auth/test", (req, res) => {
+  console.log("🧪 Test route hit");
+  res.json({ message: "Auth test route working!" });
+});
+
 // 1. Start Google OAuth
 app.get("/auth/google", (req, res) => {
   const { isSignup } = req.query;
@@ -285,6 +291,7 @@ app.get("/auth/google", (req, res) => {
 
 // 2. Google OAuth callback (GET - for OAuth redirect)
 app.get("/auth/callback", async (req, res) => {
+  console.log("🔐 OAuth callback received:", req.query);
   try {
     const { code, state } = req.query;
     if (!code)
@@ -868,7 +875,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler
+// 404 handler - must be last
 app.use("*", (req, res) => {
   res.status(404).json({
     error: "Endpoint not found",
