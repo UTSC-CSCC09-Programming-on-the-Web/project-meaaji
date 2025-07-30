@@ -44,20 +44,34 @@ onMounted(async () => {
       // Store token and user data
       localStorage.setItem("auth_token", authData.token);
       
-      // Send success message to parent window
+      // Store the OAuth result in localStorage for parent window to pick up
+      console.log("🔐 Storing OAuth result in localStorage");
+      localStorage.setItem('oauth_result', JSON.stringify({
+        type: 'OAUTH_SUCCESS',
+        payload: authData,
+        timestamp: Date.now()
+      }));
+      
+      // Try to send message to parent window if possible
       console.log("🔐 Window opener check:", !!window.opener);
       console.log("🔐 Window opener:", window.opener);
       
       if (window.opener) {
         console.log("🔐 Sending OAUTH_SUCCESS message to parent window");
-        window.opener.postMessage(
-          {
-            type: "OAUTH_SUCCESS",
-            payload: authData,
-          },
-          "*",
-        );
-        console.log("🔐 Message sent, waiting 2 seconds before closing...");
+        try {
+          window.opener.postMessage(
+            {
+              type: "OAUTH_SUCCESS",
+              payload: authData,
+            },
+            "*",
+          );
+          console.log("🔐 Message sent successfully");
+        } catch (error) {
+          console.log("🔐 Failed to send message to parent:", error);
+        }
+        
+        console.log("🔐 Waiting 2 seconds before closing popup...");
         setTimeout(() => {
           console.log("🔐 Closing popup window");
           window.close();

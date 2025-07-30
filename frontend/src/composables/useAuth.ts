@@ -109,15 +109,33 @@ export function useAuth() {
 
       window.addEventListener("message", handleCallback);
 
-      // Check if popup was closed manually
+      // Check if popup was closed manually and also check localStorage periodically
       const checkClosed = setInterval(() => {
         console.log("🔐 Checking popup status:", { closed: popup?.closed, exists: !!popup });
+        
+        // Check localStorage for OAuth result (even if popup is still open)
+        try {
+          const oauthResult = localStorage.getItem('oauth_result');
+          if (oauthResult) {
+            console.log("🔐 Found OAuth result in localStorage!");
+            const data = JSON.parse(oauthResult);
+            localStorage.removeItem('oauth_result'); // Clean up
+            clearInterval(checkClosed);
+            window.removeEventListener("message", handleCallback);
+            popup?.close();
+            handleAuthSuccess(data.payload, isSignup);
+            return;
+          }
+        } catch (error) {
+          console.error("🔐 Error checking localStorage:", error);
+        }
+        
         if (popup?.closed) {
           console.log("🔐 Popup was closed, checking for OAuth result...");
           clearInterval(checkClosed);
           window.removeEventListener("message", handleCallback);
           
-          // Check localStorage as fallback
+          // Final check for localStorage
           try {
             const oauthResult = localStorage.getItem('oauth_result');
             console.log("🔐 localStorage oauth_result:", oauthResult);
@@ -137,7 +155,7 @@ export function useAuth() {
           console.log("🔐 No OAuth result found, setting loading to false");
           isLoading.value = false;
         }
-      }, 1000);
+      }, 500); // Check more frequently (every 500ms instead of 1000ms)
     } catch (error) {
       console.error("Google sign-in error:", error);
       alert("Failed to start authentication. Please try again.");
