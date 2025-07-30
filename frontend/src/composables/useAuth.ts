@@ -78,15 +78,14 @@ export function useAuth() {
       // Listen for OAuth callback
       const handleCallback = (event: MessageEvent) => {
         console.log("🔐 Received message:", event.origin, event.data);
-        // Allow messages from the same origin or from the backend domain
-        const allowedOrigins = [window.location.origin, 'https://draw2play.xyz'];
-        if (!allowedOrigins.includes(event.origin)) return;
-
-        if (event.data.type === "OAUTH_SUCCESS") {
+        // Check if this is our OAuth message
+        if (event.data && event.data.type === 'OAUTH_SUCCESS') {
+          console.log("🔐 OAuth success message received!");
           popup?.close();
           handleAuthSuccess(event.data.payload, isSignup);
           window.removeEventListener("message", handleCallback);
-        } else if (event.data.type === "OAUTH_ERROR") {
+        } else if (event.data && event.data.type === 'OAUTH_ERROR') {
+          console.log("🔐 OAuth error message received!");
           popup?.close();
           console.error("OAuth error:", event.data.error);
           alert("Authentication failed. Please try again.");

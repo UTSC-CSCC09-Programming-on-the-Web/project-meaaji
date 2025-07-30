@@ -395,22 +395,28 @@ app.get("/auth/callback", async (req, res) => {
       </head>
       <body>
         <script>
-          window.opener.postMessage({
-            type: 'OAUTH_SUCCESS',
-            payload: {
-              success: true,
-              user: {
-                id: '${user.id}',
-                email: '${user.email}',
-                name: '${user.display_name}',
-                picture: '${user.profile_picture_url}',
-                subscriptionStatus: '${user.subscription_status}',
-                isNewUser: ${isNewUser}
-              },
-              token: '${token}',
-              isSignup: ${state === 'signup'}
-            }
-          }, '${process.env.FRONTEND_URL}');
+          console.log('🔐 OAuth callback: Sending success message');
+          try {
+            window.opener.postMessage({
+              type: 'OAUTH_SUCCESS',
+              payload: {
+                success: true,
+                user: {
+                  id: '${user.id}',
+                  email: '${user.email}',
+                  name: '${user.display_name}',
+                  picture: '${user.profile_picture_url}',
+                  subscriptionStatus: '${user.subscription_status}',
+                  isNewUser: ${isNewUser}
+                },
+                token: '${token}',
+                isSignup: ${state === 'signup'}
+              }
+            }, '*');
+            console.log('🔐 OAuth callback: Message sent successfully');
+          } catch (error) {
+            console.error('🔐 OAuth callback: Error sending message:', error);
+          }
         </script>
         <p>Authentication complete! You can close this window.</p>
       </body>
