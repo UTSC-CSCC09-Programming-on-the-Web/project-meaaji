@@ -407,18 +407,26 @@ app.get("/auth/callback", async (req, res) => {
   console.log("🔐 OAuth callback path:", req.path);
   
   // Disable helmet for this route to allow inline scripts
+  console.log("🔐 Removing security headers");
   res.removeHeader('Content-Security-Policy');
   res.removeHeader('X-Content-Type-Options');
   res.removeHeader('X-Frame-Options');
   res.removeHeader('X-XSS-Protection');
+  console.log("🔐 Security headers removed");
   
 
   try {
+    console.log("🔐 Starting OAuth callback processing");
     const { code, state } = req.query;
-    if (!code)
+    console.log("🔐 Extracted code and state:", { code: !!code, state: !!state });
+    if (!code) {
+      console.log("🔐 No code provided, returning error");
       return res.status(400).json({ error: "Authorization code is required" });
+    }
     
     // Exchange code for token
+    console.log("🔐 Starting token exchange with Google");
+    console.log("🔐 Using redirect URI:", REDIRECT_URI);
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -464,12 +472,14 @@ app.get("/auth/callback", async (req, res) => {
         profile_picture_url: userData.picture,
       });
     } else {
+      console.log("🔐 Updating existing user profile");
       await User.updateProfile(user.id, {
         display_name: userData.name,
         first_name: userData.given_name,
         last_name: userData.family_name,
         profile_picture_url: userData.picture,
       });
+      console.log("🔐 User profile updated");
       user = await User.findById(user.id);
       console.log("🔐 User retrieved from database:", user.id);
     }
@@ -495,9 +505,12 @@ app.get("/auth/callback", async (req, res) => {
       token: token,
       isSignup: state === 'signup'
     };
+    console.log("🔐 Auth data object created:", { userId: authData.user.id, hasToken: !!authData.token, isNewUser: authData.user.isNewUser });
     
     // Redirect to frontend with auth data
+    console.log("🔐 Preparing redirect data");
     const encodedData = encodeURIComponent(JSON.stringify(authData));
+    console.log("🔐 Data encoded successfully, length:", encodedData.length);
     const frontendUrl = process.env.FRONTEND_URL || 'https://draw2play.xyz';
     const redirectUrl = `${frontendUrl}/auth/callback?data=${encodedData}`;
     
@@ -511,10 +524,12 @@ app.get("/auth/callback", async (req, res) => {
     console.log("🔐 Redirect URL:", redirectUrl);
     
     try {
+      console.log("🔐 Attempting to send redirect...");
       res.redirect(redirectUrl);
       console.log("🔐 OAuth callback redirect sent successfully");
     } catch (error) {
       console.error("🔐 Error sending redirect:", error);
+      console.error("🔐 Redirect error stack:", error.stack);
       // Fallback to HTML response
       const html = `
         <!DOCTYPE html>
