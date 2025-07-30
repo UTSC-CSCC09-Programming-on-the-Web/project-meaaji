@@ -16,7 +16,7 @@ echo "📡 Forwarding webhooks to: http://backend:3000/webhook"
 echo "🔑 Stripe CLI will generate a webhook secret for you"
 
 # Start Stripe CLI with webhook forwarding
-stripe listen \\
+exec stripe listen \\
   --forward-to http://backend:3000/webhook \\
   --print-secret \\
   --api-key "\$STRIPE_API_KEY"

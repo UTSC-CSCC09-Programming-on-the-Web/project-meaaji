@@ -149,6 +149,8 @@ services:
     restart: unless-stopped
     profiles:
       - stripe
+    tty: true
+    stdin_open: true
 
   # Nginx reverse proxy
   nginx:
