@@ -267,6 +267,18 @@ app.get("/api", (req, res) => {
 
 // --- API Endpoints ---
 
+// Simple test route - should always work
+app.get("/ping", (req, res) => {
+  console.log("🏓 Ping route hit");
+  res.json({ message: "pong", timestamp: new Date().toISOString() });
+});
+
+// Test route without User model dependency
+app.get("/auth/simple", (req, res) => {
+  console.log("🔐 Simple auth route hit");
+  res.json({ message: "Simple auth route working!", timestamp: new Date().toISOString() });
+});
+
 // Debug route - test if server is loading routes
 app.get("/debug", (req, res) => {
   console.log("🔍 Debug route hit");
