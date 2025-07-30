@@ -17,6 +17,8 @@ import { CohereClient } from "cohere-ai";
 const cohere = new CohereClient({ token: process.env.CO_API_KEY });
 import { Queue, QueueEvents } from "bullmq";
 import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const storybookModerationQueue = new Queue("storybookModeration", {
   connection: {
@@ -47,8 +49,6 @@ const MAX_PAGES = 15;
 // No need to load .env file in container
 
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 // Security middleware
 app.use(helmet());
 
