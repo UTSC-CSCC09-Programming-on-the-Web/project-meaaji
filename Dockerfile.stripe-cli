@@ -13,14 +13,13 @@ COPY <<EOF /start.sh
 #!/bin/sh
 echo "🔗 Starting Stripe CLI webhook forwarding..."
 echo "📡 Forwarding webhooks to: http://backend:3000/webhook"
-echo "🔑 Using webhook secret: \$STRIPE_WEBHOOK_SECRET"
+echo "🔑 Stripe CLI will generate a webhook secret for you"
 
 # Start Stripe CLI with webhook forwarding
 stripe listen \\
   --forward-to http://backend:3000/webhook \\
   --print-secret \\
-  --api-key "\$STRIPE_API_KEY" \\
-  --webhook-secret "\$STRIPE_WEBHOOK_SECRET"
+  --api-key "\$STRIPE_API_KEY"
 EOF
 
 RUN chmod +x /start.sh
