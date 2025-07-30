@@ -326,6 +326,12 @@ try {
   console.error("❌ Error registering API routes:", error);
 }
 
+// Test route to verify backend is receiving requests
+app.get("/auth/test", (req, res) => {
+  console.log("🔐 Test route hit");
+  res.json({ message: "Backend is working" });
+});
+
 // Test OAuth callback route
 app.get("/auth/callback/test", (req, res) => {
   console.log("🔐 Test OAuth callback route hit");
@@ -397,6 +403,8 @@ app.get("/auth/callback", async (req, res) => {
   console.log("🔐 OAuth callback received:", req.query);
   console.log("🔐 OAuth callback URL:", req.url);
   console.log("🔐 OAuth callback headers:", req.headers);
+  console.log("🔐 OAuth callback method:", req.method);
+  console.log("🔐 OAuth callback path:", req.path);
   
   // Disable helmet for this route to allow inline scripts
   res.removeHeader('Content-Security-Policy');
