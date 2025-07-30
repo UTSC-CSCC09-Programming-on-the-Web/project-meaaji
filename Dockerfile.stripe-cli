@@ -7,8 +7,5 @@ ENV STRIPE_API_KEY=""
 # Expose the port that Stripe CLI uses for webhook forwarding
 EXPOSE 13111
 
-# Override the entrypoint to use shell
-ENTRYPOINT []
-
-# Use a simple command that works with or without API key
-CMD ["sh", "-c", "stripe listen --forward-to http://backend:3000/webhook --print-secret"] 
+# Use the default entrypoint but override the command
+CMD ["listen", "--forward-to", "http://backend:3000/webhook", "--print-secret"] 
