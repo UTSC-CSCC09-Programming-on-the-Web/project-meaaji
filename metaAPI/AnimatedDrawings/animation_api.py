@@ -12,6 +12,7 @@ import subprocess
 import uuid
 from pathlib import Path
 import logging
+import sys
 
 app = Flask(__name__)
 CORS(app)  # Enable access from Vue.js
@@ -20,10 +21,11 @@ CORS(app)  # Enable access from Vue.js
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Configuration
+# Configuration - Use portable paths
 UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'outputs'
-PYTHON_PATH = r'C:\Users\16474\AppData\Local\Programs\Python\Python311\python.exe'
+# Use system Python instead of hardcoded path
+PYTHON_PATH = sys.executable
 SCRIPT_PATH = 'examples/image_to_animation.py'
 
 # Create folders
@@ -90,9 +92,10 @@ def create_animation():
         # 3. Execute AnimatedDrawings script
         start_time = time.time()
         
-        # Set PYTHONPATH
+        # Set PYTHONPATH - Use current directory
         env = os.environ.copy()
-        env['PYTHONPATH'] = r'C:\Users\16474\Desktop\Third Year\CSCC09\project-meaaji\metaAPI\AnimatedDrawings;' + env.get('PYTHONPATH', '')
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        env['PYTHONPATH'] = current_dir + os.pathsep + env.get('PYTHONPATH', '')
         
         cmd = [
             PYTHON_PATH,
@@ -139,7 +142,10 @@ def create_animation():
             frame_count = 339  # Use default value
         
         # 6. Return result
-        video_url = f"http://localhost:5000/api/download/{unique_id}/video.gif"
+        # Use environment variable for host or default to localhost
+        host = os.environ.get('ANIMATION_API_HOST', 'localhost')
+        port = os.environ.get('ANIMATION_API_PORT', '5000')
+        video_url = f"http://{host}:{port}/api/download/{unique_id}/video.gif"
         
         result_data = {
             'status': 'success',

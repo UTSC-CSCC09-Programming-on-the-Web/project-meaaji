@@ -25,10 +25,11 @@ COPY metaAPI/AnimatedDrawings/ .
 # Create necessary directories
 RUN mkdir -p uploads outputs
 
+# Set environment variables for the API
+ENV ANIMATION_API_HOST=animation
+ENV ANIMATION_API_PORT=5000
+
 # Expose port 5000
 EXPOSE 5000
-
-# Update the Python path in the animation API
-RUN sed -i 's|PYTHON_PATH = r.*|PYTHON_PATH = "/usr/local/bin/python"|g' animation_api.py
 
 CMD ["python", "animation_api.py"] 
