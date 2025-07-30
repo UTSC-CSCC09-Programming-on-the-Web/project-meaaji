@@ -9,18 +9,21 @@ ENV STRIPE_WEBHOOK_SECRET=""
 EXPOSE 13111
 
 # Create a startup script
-RUN echo '#!/bin/sh' > /start.sh && \
-    echo 'echo "🔗 Starting Stripe CLI webhook forwarding..."' >> /start.sh && \
-    echo 'echo "📡 Forwarding webhooks to: http://backend:3000/webhook"' >> /start.sh && \
-    echo 'echo "🔑 Using webhook secret: $STRIPE_WEBHOOK_SECRET"' >> /start.sh && \
-    echo '' >> /start.sh && \
-    echo '# Start Stripe CLI with webhook forwarding' >> /start.sh && \
-    echo 'stripe listen \\' >> /start.sh && \
-    echo '  --forward-to http://backend:3000/webhook \\' >> /start.sh && \
-    echo '  --print-secret \\' >> /start.sh && \
-    echo '  --api-key "$STRIPE_API_KEY" \\' >> /start.sh && \
-    echo '  --webhook-secret "$STRIPE_WEBHOOK_SECRET"' >> /start.sh && \
-    chmod +x /start.sh
+COPY <<EOF /start.sh
+#!/bin/sh
+echo "🔗 Starting Stripe CLI webhook forwarding..."
+echo "📡 Forwarding webhooks to: http://backend:3000/webhook"
+echo "🔑 Using webhook secret: \$STRIPE_WEBHOOK_SECRET"
+
+# Start Stripe CLI with webhook forwarding
+stripe listen \\
+  --forward-to http://backend:3000/webhook \\
+  --print-secret \\
+  --api-key "\$STRIPE_API_KEY" \\
+  --webhook-secret "\$STRIPE_WEBHOOK_SECRET"
+EOF
+
+RUN chmod +x /start.sh
 
 # Set the startup script as the entrypoint
 ENTRYPOINT ["/start.sh"] 
