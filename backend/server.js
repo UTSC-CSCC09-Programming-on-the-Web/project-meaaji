@@ -51,19 +51,8 @@ const MAX_PAGES = 15;
 // Trust proxy for rate limiting behind nginx
 app.set('trust proxy', 1);
 
-// Serve static files (but exclude oauth-callback.html to avoid conflicts)
-app.use('/public', express.static(path.join(__dirname, 'public'), {
-  setHeaders: (res, path) => {
-    if (path.endsWith('oauth-callback.html')) {
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    }
-  }
-}));
-
-// Prevent oauth-callback.html from being served as static file
-app.get('/public/oauth-callback.html', (req, res) => {
-  res.status(404).send('Not found');
-});
+// Serve static files
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
 // Security middleware - configure helmet to allow inline scripts for OAuth callback
 app.use(helmet({
@@ -204,7 +193,7 @@ app.use(cookieParser());
 // Google OAuth config
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const REDIRECT_URI = `${process.env.FRONTEND_URL}/auth/callback`;
+const REDIRECT_URI = `${process.env.FRONTEND_URL || "https://draw2play.xyz"}/auth/callback`;
 
 // JWT utility
 const generateToken = (user) => {
@@ -398,237 +387,13 @@ app.get("/auth/google", (req, res) => {
   res.json({ authUrl: googleAuthURL.toString() });
 });
 
-// 2. Google OAuth callback (GET - for OAuth redirect)
-app.get("/auth/callback", async (req, res) => {
-  console.log("🔐 OAuth callback received:", req.query);
-  console.log("🔐 OAuth callback URL:", req.url);
-  console.log("🔐 OAuth callback headers:", req.headers);
-  console.log("🔐 OAuth callback method:", req.method);
-  console.log("🔐 OAuth callback path:", req.path);
-  
-  // Disable helmet for this route to allow inline scripts
-  console.log("🔐 Removing security headers");
-  res.removeHeader('Content-Security-Policy');
-  res.removeHeader('X-Content-Type-Options');
-  res.removeHeader('X-Frame-Options');
-  res.removeHeader('X-XSS-Protection');
-  console.log("🔐 Security headers removed");
-  
-
-  try {
-    console.log("🔐 Starting OAuth callback processing");
-    const { code, state } = req.query;
-    console.log("🔐 Extracted code and state:", { code: !!code, state: !!state });
-    if (!code) {
-      console.log("🔐 No code provided, returning error");
-      return res.status(400).json({ error: "Authorization code is required" });
-    }
-    
-    console.log("🔐 About to start token exchange...");
-    
-    // Exchange code for token
-    try {
-      console.log("🔐 Starting token exchange with Google");
-    console.log("🔐 Using redirect URI:", REDIRECT_URI);
-    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        client_id: GOOGLE_CLIENT_ID,
-        client_secret: GOOGLE_CLIENT_SECRET,
-        code,
-        grant_type: "authorization_code",
-        redirect_uri: REDIRECT_URI,
-      }),
-    });
-    const tokenData = await tokenResponse.json();
-    if (tokenData.error)
-      return res
-        .status(400)
-        .json({
-          error: tokenData.error_description || "Token exchange failed",
-        });
-    } catch (error) {
-      console.error("🔐 Token exchange error:", error);
-      throw error;
-    }
-    
-    // Get user info
-    const userResponse = await fetch(
-      "https://www.googleapis.com/oauth2/v2/userinfo",
-      {
-        headers: { Authorization: `Bearer ${tokenData.access_token}` },
-      },
-    );
-    const userData = await userResponse.json();
-    if (userData.error)
-      return res
-        .status(400)
-        .json({ error: "Failed to fetch user information" });
-    
-    // Upsert user in PostgreSQL
-    console.log("🔐 Looking up user by Google ID:", userData.id);
-    let user = await User.findByGoogleId(userData.id);
-    console.log("🔐 User lookup result:", { found: !!user, isNewUser: !user });
-    console.log("🔐 User object after lookup:", user ? { id: user.id, email: user.email } : null);
-    const isNewUser = !user;
-    if (!user) {
-      user = await User.create({
-        google_id: userData.id,
-        email: userData.email,
-        display_name: userData.name,
-        first_name: userData.given_name,
-        last_name: userData.family_name,
-        profile_picture_url: userData.picture,
-      });
-    } else {
-      console.log("🔐 Updating existing user profile");
-      await User.updateProfile(user.id, {
-        display_name: userData.name,
-        first_name: userData.given_name,
-        last_name: userData.family_name,
-        profile_picture_url: userData.picture,
-      });
-      console.log("🔐 User profile updated");
-      user = await User.findById(user.id);
-      console.log("🔐 User retrieved from database:", user.id);
-      console.log("🔐 User object:", { id: user.id, email: user.email, display_name: user.display_name });
-      console.log("🔐 User object type:", typeof user);
-      console.log("🔐 User object keys:", Object.keys(user || {}));
-    }
-    
-    console.log("🔐 About to generate JWT for user:", user.id);
-    // Generate JWT
-    console.log("🔐 Generating JWT for user:", user.id);
-    const token = generateToken(user);
-    console.log("🔐 JWT generated successfully");
-    
-    // Store auth data in localStorage via URL parameters
-    console.log("🔐 Creating auth data object");
-    const authData = {
-      success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.display_name,
-        picture: user.profile_picture_url,
-        subscriptionStatus: user.subscription_status,
-        isNewUser: isNewUser
-      },
-      token: token,
-      isSignup: state === 'signup'
-    };
-    console.log("🔐 Auth data object created:", { userId: authData.user.id, hasToken: !!authData.token, isNewUser: authData.user.isNewUser });
-    
-    // Redirect to frontend with auth data
-    console.log("🔐 Preparing redirect data");
-    const encodedData = encodeURIComponent(JSON.stringify(authData));
-    console.log("🔐 Data encoded successfully, length:", encodedData.length);
-    const frontendUrl = process.env.FRONTEND_URL || 'https://draw2play.xyz';
-    const redirectUrl = `${frontendUrl}/auth/callback?data=${encodedData}`;
-    
-    console.log("🔐 Environment variables:");
-    console.log("🔐 FRONTEND_URL:", process.env.FRONTEND_URL);
-    console.log("🔐 NODE_ENV:", process.env.NODE_ENV);
-    
-    console.log("🔐 Redirecting to frontend with auth data");
-    console.log("🔐 Frontend URL:", frontendUrl);
-    console.log("🔐 Encoded data length:", encodedData.length);
-    console.log("🔐 Redirect URL:", redirectUrl);
-    
-    try {
-      console.log("🔐 Attempting to send redirect...");
-      res.redirect(redirectUrl);
-      console.log("🔐 OAuth callback redirect sent successfully");
-    } catch (error) {
-      console.error("🔐 Error sending redirect:", error);
-      console.error("🔐 Redirect error stack:", error.stack);
-      // Fallback to HTML response
-      const html = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Authentication Complete</title>
-            <meta charset="UTF-8">
-        </head>
-        <body>
-            <div id="message">Processing authentication...</div>
-            
-            <script>
-                console.log('🔐 OAuth callback: Starting processing...');
-                console.log('🔐 OAuth callback: URL params:', window.location.search);
-                
-                // Get the auth data from URL parameters
-                const urlParams = new URLSearchParams(window.location.search);
-                const authData = urlParams.get('data') || urlParams.get('authData');
-                
-                console.log('🔐 OAuth callback: Auth data found:', !!authData);
-                
-                if (authData) {
-                    try {
-                        const data = JSON.parse(decodeURIComponent(authData));
-                        console.log('🔐 OAuth callback: Sending success message');
-                        
-                        if (window.opener) {
-                            window.opener.postMessage({
-                                type: 'OAUTH_SUCCESS',
-                                payload: data
-                            }, '*');
-                            console.log('🔐 OAuth callback: Message sent successfully');
-                        } else {
-                            console.error('🔐 OAuth callback: window.opener is null');
-                        }
-                        
-                        document.getElementById('message').textContent = 'Authentication complete! You can close this window.';
-                    } catch (error) {
-                        console.error('🔐 OAuth callback: Error processing auth data:', error);
-                        document.getElementById('message').textContent = 'Authentication failed. Please try again.';
-                    }
-                } else {
-                    console.error('🔐 OAuth callback: No auth data found');
-                    document.getElementById('message').textContent = 'Authentication failed. No data received.';
-                }
-            </script>
-        </body>
-        </html>
-      `;
-      
-      console.log("🔐 Sending OAuth callback HTML response");
-      res.send(html);
-      console.log("🔐 OAuth callback HTML response sent");
-    }
-  } catch (error) {
-    console.error("🔐 OAuth callback error:", error);
-    console.error("🔐 Error stack:", error.stack);
-    console.error("🔐 Error message:", error.message);
-    console.error("🔐 Error name:", error.name);
-    const errorHtml = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Authentication Error</title>
-      </head>
-      <body>
-        <script>
-          window.opener.postMessage({
-            type: 'OAUTH_ERROR',
-            error: 'Authentication failed'
-          }, '${process.env.FRONTEND_URL}');
-        </script>
-        <p>Authentication failed. Please try again.</p>
-      </body>
-      </html>
-    `;
-    res.send(errorHtml);
-  }
-});
-
-// 3. Google OAuth callback (POST - for API calls)
+// 2. Google OAuth callback (POST - for API calls)
 app.post("/auth/google/callback", async (req, res) => {
   try {
     const { code, state } = req.body;
     if (!code)
       return res.status(400).json({ error: "Authorization code is required" });
+    
     // Exchange code for token
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
@@ -648,6 +413,7 @@ app.post("/auth/google/callback", async (req, res) => {
         .json({
           error: tokenData.error_description || "Token exchange failed",
         });
+    
     // Get user info
     const userResponse = await fetch(
       "https://www.googleapis.com/oauth2/v2/userinfo",
@@ -660,6 +426,7 @@ app.post("/auth/google/callback", async (req, res) => {
       return res
         .status(400)
         .json({ error: "Failed to fetch user information" });
+    
     // Upsert user in PostgreSQL
     let user = await User.findByGoogleId(userData.id);
     const isNewUser = !user;
@@ -681,6 +448,7 @@ app.post("/auth/google/callback", async (req, res) => {
       });
       user = await User.findById(user.id);
     }
+    
     // Generate JWT
     const token = generateToken(user);
     res.cookie("auth_token", token, {
