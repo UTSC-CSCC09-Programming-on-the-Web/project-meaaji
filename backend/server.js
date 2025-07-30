@@ -496,10 +496,74 @@ app.get("/auth/callback", async (req, res) => {
     const frontendUrl = process.env.FRONTEND_URL || 'https://draw2play.xyz';
     const redirectUrl = `${frontendUrl}/auth/callback?data=${encodedData}`;
     
+    console.log("🔐 Environment variables:");
+    console.log("🔐 FRONTEND_URL:", process.env.FRONTEND_URL);
+    console.log("🔐 NODE_ENV:", process.env.NODE_ENV);
+    
     console.log("🔐 Redirecting to frontend with auth data");
+    console.log("🔐 Frontend URL:", frontendUrl);
+    console.log("🔐 Encoded data length:", encodedData.length);
     console.log("🔐 Redirect URL:", redirectUrl);
-    res.redirect(redirectUrl);
-    console.log("🔐 OAuth callback redirect sent");
+    
+    try {
+      res.redirect(redirectUrl);
+      console.log("🔐 OAuth callback redirect sent successfully");
+    } catch (error) {
+      console.error("🔐 Error sending redirect:", error);
+      // Fallback to HTML response
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Authentication Complete</title>
+            <meta charset="UTF-8">
+        </head>
+        <body>
+            <div id="message">Processing authentication...</div>
+            
+            <script>
+                console.log('🔐 OAuth callback: Starting processing...');
+                console.log('🔐 OAuth callback: URL params:', window.location.search);
+                
+                // Get the auth data from URL parameters
+                const urlParams = new URLSearchParams(window.location.search);
+                const authData = urlParams.get('data') || urlParams.get('authData');
+                
+                console.log('🔐 OAuth callback: Auth data found:', !!authData);
+                
+                if (authData) {
+                    try {
+                        const data = JSON.parse(decodeURIComponent(authData));
+                        console.log('🔐 OAuth callback: Sending success message');
+                        
+                        if (window.opener) {
+                            window.opener.postMessage({
+                                type: 'OAUTH_SUCCESS',
+                                payload: data
+                            }, '*');
+                            console.log('🔐 OAuth callback: Message sent successfully');
+                        } else {
+                            console.error('🔐 OAuth callback: window.opener is null');
+                        }
+                        
+                        document.getElementById('message').textContent = 'Authentication complete! You can close this window.';
+                    } catch (error) {
+                        console.error('🔐 OAuth callback: Error processing auth data:', error);
+                        document.getElementById('message').textContent = 'Authentication failed. Please try again.';
+                    }
+                } else {
+                    console.error('🔐 OAuth callback: No auth data found');
+                    document.getElementById('message').textContent = 'Authentication failed. No data received.';
+                }
+            </script>
+        </body>
+        </html>
+      `;
+      
+      console.log("🔐 Sending OAuth callback HTML response");
+      res.send(html);
+      console.log("🔐 OAuth callback HTML response sent");
+    }
   } catch (error) {
     console.error("OAuth callback error:", error);
     const errorHtml = `
