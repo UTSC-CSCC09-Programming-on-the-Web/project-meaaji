@@ -55,19 +55,23 @@ export function useAuth() {
   };
 
   const signInWithGoogle = async (isSignup = false) => {
+    console.log("🔐 Starting Google sign-in process...");
     isLoading.value = true;
 
     try {
+      console.log("🔐 Fetching OAuth URL from:", `${API_BASE_URL}/auth/google?isSignup=${isSignup}`);
       // Get OAuth URL from backend
       const response = await fetch(
         `${API_BASE_URL}/auth/google?isSignup=${isSignup}`,
       );
       const data = await response.json();
+      console.log("🔐 Received OAuth URL response:", data);
 
       if (!data.authUrl) {
         throw new Error("Failed to get OAuth URL");
       }
 
+      console.log("🔐 Opening OAuth popup with URL:", data.authUrl);
       // Open OAuth popup
       const popup = window.open(
         data.authUrl,
@@ -79,11 +83,18 @@ export function useAuth() {
         throw new Error("Popup blocked! Please allow popups for this site.");
       }
 
-      console.log("🔐 OAuth popup opened, waiting for callback...");
+      console.log("🔐 OAuth popup opened successfully, waiting for callback...");
 
       // Listen for OAuth callback
       const handleCallback = (event: MessageEvent) => {
-        console.log("🔐 Received message:", event.origin, event.data);
+        console.log("🔐 Received message event:", {
+          origin: event.origin,
+          data: event.data,
+          type: event.data?.type,
+          hasOpener: !!window.opener,
+          popupClosed: popup?.closed
+        });
+        
         // Check if this is our OAuth message
         if (event.data && event.data.type === 'OAUTH_SUCCESS') {
           console.log("🔐 OAuth success message received!");
@@ -97,31 +108,41 @@ export function useAuth() {
           alert("Authentication failed. Please try again.");
           isLoading.value = false;
           window.removeEventListener("message", handleCallback);
+        } else {
+          console.log("🔐 Received non-OAuth message, ignoring");
         }
       };
 
+      console.log("🔐 Setting up message event listener...");
       window.addEventListener("message", handleCallback);
+      console.log("🔐 Message event listener set up successfully");
 
       // Check if popup was closed manually
       const checkClosed = setInterval(() => {
+        console.log("🔐 Checking popup status:", { closed: popup?.closed, exists: !!popup });
         if (popup?.closed) {
+          console.log("🔐 Popup was closed, checking for OAuth result...");
           clearInterval(checkClosed);
           window.removeEventListener("message", handleCallback);
           
           // Check localStorage as fallback
           try {
             const oauthResult = localStorage.getItem('oauth_result');
+            console.log("🔐 localStorage oauth_result:", oauthResult);
             if (oauthResult) {
               console.log("🔐 Found OAuth result in localStorage");
               const data = JSON.parse(oauthResult);
               localStorage.removeItem('oauth_result'); // Clean up
               handleAuthSuccess(data.payload, isSignup);
               return;
+            } else {
+              console.log("🔐 No OAuth result found in localStorage");
             }
           } catch (error) {
             console.error("🔐 Error checking localStorage:", error);
           }
           
+          console.log("🔐 No OAuth result found, setting loading to false");
           isLoading.value = false;
         }
       }, 1000);
@@ -136,14 +157,18 @@ export function useAuth() {
     authData: AuthResponse,
     wasSignup: boolean,
   ) => {
+    console.log("🔐 handleAuthSuccess called with:", { authData, wasSignup });
     try {
       // Store token and user data
       localStorage.setItem("auth_token", authData.token);
       user.value = authData.user;
+      console.log("🔐 Token and user data stored");
 
       // Check subscription status and redirect accordingly
+      console.log("🔐 User subscription status:", authData.user.subscriptionStatus);
       if (authData.user.subscriptionStatus === "active") {
         // User has active subscription, go to dashboard
+        console.log("🔐 Redirecting to dashboard...");
         await router.push("/dashboard");
 
         if (authData.isSignup || wasSignup) {
@@ -153,15 +178,17 @@ export function useAuth() {
         }
       } else {
         // User needs to subscribe
+        console.log("🔐 Redirecting to subscribe page...");
         await router.push("/subscribe");
         console.log("Please complete your subscription to continue.");
       }
     } catch (error) {
-      console.error("Error handling auth success:", error);
+      console.error("🔐 Error handling auth success:", error);
       alert(
         "Authentication completed but failed to process. Please try again.",
       );
     } finally {
+      console.log("🔐 Setting loading to false");
       isLoading.value = false;
     }
   };
