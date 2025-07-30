@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     libgomp1 \
     xvfb \
     x11-utils \
+    libosmesa6-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
@@ -32,6 +33,8 @@ ENV ANIMATION_API_HOST=animation
 ENV ANIMATION_API_PORT=5000
 # Set display for Xvfb
 ENV DISPLAY=:99
+# Set PyOpenGL to use OSMesa for headless rendering
+ENV PYOPENGL_PLATFORM=osmesa
 
 # Expose port 5000
 EXPOSE 5000
