@@ -113,13 +113,22 @@ export function useAuth() {
       const checkClosed = setInterval(() => {
         console.log("🔐 Checking popup status:", { closed: popup?.closed, exists: !!popup });
         
-        // Check localStorage for OAuth result (even if popup is still open)
+        // Check localStorage and sessionStorage for OAuth result (even if popup is still open)
         try {
-          const oauthResult = localStorage.getItem('oauth_result');
+          let oauthResult = localStorage.getItem('oauth_result');
+          if (!oauthResult) {
+            oauthResult = sessionStorage.getItem('oauth_result');
+            console.log("🔐 Checking sessionStorage for OAuth result...");
+          } else {
+            console.log("🔐 Checking localStorage for OAuth result...");
+          }
+          
           if (oauthResult) {
-            console.log("🔐 Found OAuth result in localStorage!");
+            console.log("🔐 Found OAuth result in storage!");
+            console.log("🔐 OAuth result:", oauthResult);
             const data = JSON.parse(oauthResult);
             localStorage.removeItem('oauth_result'); // Clean up
+            sessionStorage.removeItem('oauth_result'); // Clean up
             clearInterval(checkClosed);
             window.removeEventListener("message", handleCallback);
             popup?.close();
@@ -127,7 +136,7 @@ export function useAuth() {
             return;
           }
         } catch (error) {
-          console.error("🔐 Error checking localStorage:", error);
+          console.error("🔐 Error checking storage:", error);
         }
         
         if (popup?.closed) {

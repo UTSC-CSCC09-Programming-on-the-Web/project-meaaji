@@ -46,11 +46,17 @@ onMounted(async () => {
       
       // Store the OAuth result in localStorage for parent window to pick up
       console.log("🔐 Storing OAuth result in localStorage");
-      localStorage.setItem('oauth_result', JSON.stringify({
+      const oauthResult = JSON.stringify({
         type: 'OAUTH_SUCCESS',
         payload: authData,
         timestamp: Date.now()
-      }));
+      });
+      localStorage.setItem('oauth_result', oauthResult);
+      console.log("🔐 OAuth result stored:", oauthResult);
+      
+      // Also try sessionStorage as backup
+      sessionStorage.setItem('oauth_result', oauthResult);
+      console.log("🔐 OAuth result also stored in sessionStorage");
       
       // Try to send message to parent window if possible
       console.log("🔐 Window opener check:", !!window.opener);
