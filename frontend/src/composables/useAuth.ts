@@ -77,7 +77,10 @@ export function useAuth() {
 
       // Listen for OAuth callback
       const handleCallback = (event: MessageEvent) => {
-        if (event.origin !== window.location.origin) return;
+        console.log("🔐 Received message:", event.origin, event.data);
+        // Allow messages from the same origin or from the backend domain
+        const allowedOrigins = [window.location.origin, 'https://draw2play.xyz'];
+        if (!allowedOrigins.includes(event.origin)) return;
 
         if (event.data.type === "OAUTH_SUCCESS") {
           popup?.close();
