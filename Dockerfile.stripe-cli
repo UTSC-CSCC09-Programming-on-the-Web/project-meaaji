@@ -7,6 +7,9 @@ ENV STRIPE_API_KEY=""
 # Expose the port that Stripe CLI uses for webhook forwarding
 EXPOSE 13111
 
+# Override the entrypoint to use shell
+ENTRYPOINT []
+
 # Create a startup script to handle authentication and startup
 RUN echo '#!/bin/sh\n\
 if [ -n "$STRIPE_API_KEY" ]; then\n\
