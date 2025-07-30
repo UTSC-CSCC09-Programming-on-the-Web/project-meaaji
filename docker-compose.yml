@@ -134,6 +134,23 @@ services:
       - draw2play_network
     restart: unless-stopped
 
+  # Stripe CLI for webhook forwarding (development/sandbox)
+  stripe-cli:
+    build:
+      context: .
+      dockerfile: Dockerfile.stripe-cli
+    container_name: draw2play_stripe_cli
+    environment:
+      - STRIPE_API_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+    depends_on:
+      - backend
+    networks:
+      - draw2play_network
+    restart: unless-stopped
+    profiles:
+      - stripe
+
   # Nginx reverse proxy
   nginx:
     image: nginx:alpine
