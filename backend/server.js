@@ -303,6 +303,46 @@ try {
   console.error("❌ Error registering API routes:", error);
 }
 
+// Test OAuth callback route
+app.get("/auth/callback/test", (req, res) => {
+  console.log("🔐 Test OAuth callback route hit");
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Test OAuth Callback</title>
+    </head>
+    <body>
+      <script>
+        console.log('🔐 Test OAuth callback: Sending test message');
+        try {
+          window.opener.postMessage({
+            type: 'OAUTH_SUCCESS',
+            payload: {
+              success: true,
+              user: {
+                id: 'test-123',
+                email: 'test@test.com',
+                name: 'Test User',
+                picture: 'https://example.com/pic.jpg',
+                subscriptionStatus: 'inactive',
+                isNewUser: true
+              },
+              token: 'test-token-123',
+              isSignup: true
+            }
+          }, '*');
+          console.log('🔐 Test OAuth callback: Test message sent');
+        } catch (error) {
+          console.error('🔐 Test OAuth callback: Error sending message:', error);
+        }
+      </script>
+      <p>Test OAuth callback complete! You can close this window.</p>
+    </body>
+    </html>
+  `);
+});
+
 // 1. Start Google OAuth
 app.get("/auth/google", (req, res) => {
   console.log("🔐 Google OAuth route hit");
@@ -323,6 +363,8 @@ app.get("/auth/google", (req, res) => {
 // 2. Google OAuth callback (GET - for OAuth redirect)
 app.get("/auth/callback", async (req, res) => {
   console.log("🔐 OAuth callback received:", req.query);
+  console.log("🔐 OAuth callback URL:", req.url);
+  console.log("🔐 OAuth callback headers:", req.headers);
   try {
     const { code, state } = req.query;
     if (!code)
@@ -454,7 +496,9 @@ app.get("/auth/callback", async (req, res) => {
       </html>
     `;
     
+    console.log("🔐 Sending OAuth callback HTML response");
     res.send(html);
+    console.log("🔐 OAuth callback HTML response sent");
   } catch (error) {
     console.error("OAuth callback error:", error);
     const errorHtml = `
