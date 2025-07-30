@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useAuth } from "../composables/useAuth";
+import { onMounted, onUnmounted } from "vue";
 
 const { signInWithGoogle, isLoading } = useAuth();
 
@@ -10,6 +11,19 @@ const handleGoogleSignIn = () => {
 const handleGoogleSignUp = () => {
   signInWithGoogle(true); // Sign up flow
 };
+
+onMounted(() => {
+  function handleOAuthMessage(event) {
+    if (event.data?.type === "OAUTH_SUCCESS") {
+      // Optionally store token/user info here
+      window.location.href = "/subscribe";
+    }
+  }
+  window.addEventListener("message", handleOAuthMessage);
+  onUnmounted(() => {
+    window.removeEventListener("message", handleOAuthMessage);
+  });
+});
 </script>
 
 <template>
