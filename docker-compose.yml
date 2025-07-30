@@ -1,0 +1,124 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: draw2play_postgres
+    environment:
+      POSTGRES_DB: Draw2PlayDB
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/migrations:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - draw2play_network
+    restart: unless-stopped
+
+  # Redis for task queues
+  redis:
+    image: redis:7-alpine
+    container_name: draw2play_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - draw2play_network
+    restart: unless-stopped
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: draw2play_backend
+    environment:
+      - NODE_ENV=production
+      - DB_USER=postgres
+      - DB_HOST=postgres
+      - DB_NAME=Draw2PlayDB
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_PORT=5432
+      - PORT=3000
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - MONTHLY_PRICE_ID=${MONTHLY_PRICE_ID}
+      - CO_API_KEY=${CO_API_KEY}
+      - STABILITY_API_KEY=${STABILITY_API_KEY}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - FRONTEND_URL=${FRONTEND_URL}
+    ports:
+      - "3000:3000"
+    volumes:
+      - backend_uploads:/app/uploads
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - draw2play_network
+    restart: unless-stopped
+
+  # Animation API
+  animation:
+    build:
+      context: .
+      dockerfile: Dockerfile.animation
+    container_name: draw2play_animation
+    environment:
+      - FLASK_ENV=production
+    ports:
+      - "5000:5000"
+    volumes:
+      - animation_uploads:/app/uploads
+      - animation_outputs:/app/outputs
+    networks:
+      - draw2play_network
+    restart: unless-stopped
+
+  # Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: draw2play_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - draw2play_network
+    restart: unless-stopped
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: draw2play_nginx
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx-proxy.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - frontend
+      - backend
+      - animation
+    networks:
+      - draw2play_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  backend_uploads:
+  animation_uploads:
+  animation_outputs:
+
+networks:
+  draw2play_network:
+    driver: bridge 
