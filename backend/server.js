@@ -478,6 +478,7 @@ app.get("/auth/callback", async (req, res) => {
     const redirectUrl = `${frontendUrl}/auth/callback?data=${encodedData}`;
     
     console.log("🔐 Redirecting to frontend with auth data");
+    console.log("🔐 Redirect URL:", redirectUrl);
     res.redirect(redirectUrl);
     console.log("🔐 OAuth callback redirect sent");
   } catch (error) {

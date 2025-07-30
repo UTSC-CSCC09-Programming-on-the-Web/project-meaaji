@@ -8,9 +8,14 @@
     <div id="message">Processing authentication...</div>
     
     <script>
+        console.log('🔐 OAuth callback: Starting processing...');
+        console.log('🔐 OAuth callback: URL params:', window.location.search);
+        
         // Get the auth data from URL parameters
         const urlParams = new URLSearchParams(window.location.search);
-        const authData = urlParams.get('authData');
+        const authData = urlParams.get('data') || urlParams.get('authData');
+        
+        console.log('🔐 OAuth callback: Auth data found:', !!authData);
         
         if (authData) {
             try {
