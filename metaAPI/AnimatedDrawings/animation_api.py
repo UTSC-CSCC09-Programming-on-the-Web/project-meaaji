@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# Set OpenGL platform before any other imports
+import os
+os.environ['PYOPENGL_PLATFORM'] = 'osmesa'
+
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import base64
 import cv2
 import numpy as np
-import os
 import time
 import subprocess
 import uuid
@@ -96,6 +99,8 @@ def create_animation():
         env = os.environ.copy()
         current_dir = os.path.dirname(os.path.abspath(__file__))
         env['PYTHONPATH'] = current_dir + os.pathsep + env.get('PYTHONPATH', '')
+        # Set OpenGL platform for headless rendering
+        env['PYOPENGL_PLATFORM'] = 'osmesa'
         
         cmd = [
             PYTHON_PATH,
