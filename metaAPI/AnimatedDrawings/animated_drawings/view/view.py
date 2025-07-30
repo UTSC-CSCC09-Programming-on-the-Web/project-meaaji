@@ -46,7 +46,10 @@ class View:
         use_mesa = getattr(view_cfg, 'use_mesa', False)
         
         print(f"DEBUG: DISPLAY={display}, PYOPENGL_PLATFORM={pyopengl_platform}, use_mesa={use_mesa}")
+        print(f"DEBUG: This is the updated view.py file - WindowView import should be removed")
         
         # Always use MesaView in Docker environment to avoid OpenGL issues
+        print(f"DEBUG: Importing MesaView...")
         from animated_drawings.view.mesa_view import MesaView
+        print(f"DEBUG: Creating MesaView...")
         return MesaView(view_cfg)

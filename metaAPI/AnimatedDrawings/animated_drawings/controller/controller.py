@@ -95,8 +95,7 @@ class Controller():
             return VideoRenderController(controller_cfg, scene, view,)
         elif controller_cfg.mode == 'interactive':
             from animated_drawings.controller.interactive_controller import InteractiveController
-            from animated_drawings.view.window_view import WindowView
-            assert isinstance(view, WindowView)  # for static analysis. checks elsewhere ensure this always passes
+            # Note: Using MesaView instead of WindowView for headless rendering
             return InteractiveController(controller_cfg, scene, view)
         else:
             msg = f'Unknown controller mode specified: {controller_cfg.mode}'
