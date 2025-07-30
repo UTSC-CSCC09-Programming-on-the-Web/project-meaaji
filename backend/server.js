@@ -51,8 +51,19 @@ const MAX_PAGES = 15;
 // Trust proxy for rate limiting behind nginx
 app.set('trust proxy', 1);
 
-// Serve static files
-app.use('/public', express.static(path.join(__dirname, 'public')));
+// Serve static files (but exclude oauth-callback.html to avoid conflicts)
+app.use('/public', express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, path) => {
+    if (path.endsWith('oauth-callback.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+  }
+}));
+
+// Prevent oauth-callback.html from being served as static file
+app.get('/public/oauth-callback.html', (req, res) => {
+  res.status(404).send('Not found');
+});
 
 // Security middleware - configure helmet to allow inline scripts for OAuth callback
 app.use(helmet({
