@@ -374,6 +374,9 @@ app.get("/auth/callback", async (req, res) => {
   console.log("🔐 OAuth callback received:", req.query);
   console.log("🔐 OAuth callback URL:", req.url);
   console.log("🔐 OAuth callback headers:", req.headers);
+  
+  // Disable CSP for OAuth callback to allow inline scripts
+  res.setHeader('Content-Security-Policy', "script-src 'self' 'unsafe-inline'");
   try {
     const { code, state } = req.query;
     if (!code)
