@@ -10,6 +10,10 @@
 
 ## 📌 Project Overview
 
+
+**DEPLOYED AT** - https://draw2play.xyz/dashboard\
+>
+
 **Draw2StoryPlay** is a creative web application that allows children to draw simple sketches and generate fully animated **storybooks** or interactive **2D games** from their creations using AI.
 
 Users draw directly on a canvas and input a prompt (e.g., "This stickman goes on a space adventure"). Our system then generates:
