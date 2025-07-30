@@ -471,8 +471,10 @@ app.get("/auth/callback", async (req, res) => {
         profile_picture_url: userData.picture,
       });
       user = await User.findById(user.id);
+      console.log("🔐 User retrieved from database:", user.id);
     }
     
+    console.log("🔐 About to generate JWT for user:", user.id);
     // Generate JWT
     console.log("🔐 Generating JWT for user:", user.id);
     const token = generateToken(user);
