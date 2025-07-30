@@ -395,6 +395,7 @@ app.get("/auth/google", (req, res) => {
 
 // 2. Google OAuth callback (GET - serves frontend component)
 app.get("/auth/callback", (req, res) => {
+  console.log("🚀 NEW CODE IS RUNNING - OAuth callback GET route hit!");
   console.log("🔐 GET /auth/callback hit with URL:", req.url);
   console.log("🔐 Query parameters:", req.query);
   
@@ -402,7 +403,8 @@ app.get("/auth/callback", (req, res) => {
   const queryString = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
   
   // Redirect to the frontend Vue component
-  const redirectUrl = `https://draw2play.xyz/auth/callback${queryString}`;
+  // Use a different path that nginx will route to frontend
+  const redirectUrl = `https://draw2play.xyz/oauth-callback${queryString}`;
   
   console.log("🔐 Redirecting to:", redirectUrl);
   

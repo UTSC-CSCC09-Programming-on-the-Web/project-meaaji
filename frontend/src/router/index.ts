@@ -34,7 +34,11 @@ const router = createRouter({
       name: "AuthCallback",
       component: AuthCallback,
     },
-
+    {
+      path: "/oauth-callback",
+      name: "OAuthCallback",
+      component: AuthCallback,
+    },
   ],
 });
 
