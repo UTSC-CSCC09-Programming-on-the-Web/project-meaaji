@@ -3,26 +3,9 @@ FROM stripe/stripe-cli:latest
 
 # Set environment variables
 ENV STRIPE_API_KEY=""
-ENV STRIPE_WEBHOOK_SECRET=""
 
 # Expose the port that Stripe CLI uses for webhook forwarding
 EXPOSE 13111
 
-# Create a startup script
-COPY <<EOF /start.sh
-#!/bin/sh
-echo "🔗 Starting Stripe CLI webhook forwarding..."
-echo "📡 Forwarding webhooks to: http://backend:3000/webhook"
-echo "🔑 Stripe CLI will generate a webhook secret for you"
-
-# Start Stripe CLI with webhook forwarding
-exec stripe listen \\
-  --forward-to http://backend:3000/webhook \\
-  --print-secret \\
-  --api-key "\$STRIPE_API_KEY"
-EOF
-
-RUN chmod +x /start.sh
-
-# Set the startup script as the entrypoint
-ENTRYPOINT ["/start.sh"] 
+# Set the command to run Stripe CLI directly
+CMD ["stripe", "listen", "--forward-to", "http://backend:3000/webhook", "--print-secret"] 
