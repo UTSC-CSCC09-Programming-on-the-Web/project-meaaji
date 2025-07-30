@@ -722,7 +722,7 @@ app.delete("/api/storybooks", authenticateToken, async (req, res) => {
   }
 });
 
-const uploadsPath = path.join(import.meta.dirname, "uploads");
+const uploadsPath = path.join(__dirname, "uploads");
 app.use("/uploads", (req, res, next) => {
   res.header("Access-Control-Allow-Origin", process.env.FRONTEND_URL || "http://localhost:5173");
   res.header("Cross-Origin-Resource-Policy", "same-site");
