@@ -387,7 +387,14 @@ app.get("/auth/google", (req, res) => {
   res.json({ authUrl: googleAuthURL.toString() });
 });
 
-// 2. Google OAuth callback (POST - for API calls)
+// 2. Google OAuth callback (GET - serves frontend component)
+app.get("/auth/callback", (req, res) => {
+  // This route should serve the frontend Vue component
+  // The frontend will handle the OAuth code and call the POST endpoint
+  res.redirect(`${process.env.FRONTEND_URL}/auth/callback${req.url.replace('/auth/callback', '')}`);
+});
+
+// 3. Google OAuth callback (POST - for API calls)
 app.post("/auth/google/callback", async (req, res) => {
   try {
     const { code, state } = req.body;
