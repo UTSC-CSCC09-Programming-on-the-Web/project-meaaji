@@ -81,6 +81,12 @@ app.use(
 // });
 // app.use(limiter);
 
+// Simple test route to check if backend is accessible
+app.get("/test", (req, res) => {
+  console.log("🔍 Test route hit");
+  res.json({ message: "Backend is accessible", timestamp: new Date().toISOString() });
+});
+
 // --- Stripe webhook endpoint must come BEFORE express.json() ---
 app.post(
   "/webhook",
