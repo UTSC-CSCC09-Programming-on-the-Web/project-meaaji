@@ -87,15 +87,8 @@ export function useAuth() {
 
       // Listen for OAuth callback
       const handleCallback = (event: MessageEvent) => {
-        console.log("🔐 Received message event:", {
-          origin: event.origin,
-          data: event.data,
-          type: event.data?.type,
-          hasOpener: !!window.opener,
-          popupClosed: popup?.closed
-        });
+        console.log("🔐 Received message:", event.origin, event.data);
         
-        // Check if this is our OAuth message
         if (event.data && event.data.type === 'OAUTH_SUCCESS') {
           console.log("🔐 OAuth success message received!");
           popup?.close();
@@ -108,14 +101,10 @@ export function useAuth() {
           alert("Authentication failed. Please try again.");
           isLoading.value = false;
           window.removeEventListener("message", handleCallback);
-        } else {
-          console.log("🔐 Received non-OAuth message, ignoring");
         }
       };
 
-      console.log("🔐 Setting up message event listener...");
       window.addEventListener("message", handleCallback);
-      console.log("🔐 Message event listener set up successfully");
 
       // Check if popup was closed manually
       const checkClosed = setInterval(() => {
