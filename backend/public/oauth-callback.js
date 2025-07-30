@@ -18,6 +18,7 @@ if (authData) {
                 payload: data
             }, '*');
             console.log('🔐 OAuth callback: Message sent successfully');
+            window.close(); // Close the popup after sending the message
         } else {
             console.error('🔐 OAuth callback: window.opener is null');
         }
