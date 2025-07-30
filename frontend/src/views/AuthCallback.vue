@@ -58,41 +58,35 @@ onMounted(async () => {
       sessionStorage.setItem('oauth_result', oauthResult);
       console.log("🔐 OAuth result also stored in sessionStorage");
       
-      // Try to send message to parent window if possible
+      // Try to redirect parent window directly
       console.log("🔐 Window opener check:", !!window.opener);
       console.log("🔐 Window opener:", window.opener);
       
       if (window.opener) {
-        console.log("🔐 Sending OAUTH_SUCCESS message to parent window");
+        console.log("🔐 Redirecting parent window to subscribe page");
         try {
-          window.opener.postMessage(
-            {
-              type: "OAUTH_SUCCESS",
-              payload: authData,
-            },
-            "*",
-          );
-          console.log("🔐 Message sent successfully");
+          // Store token in parent window's localStorage
+          window.opener.localStorage.setItem("auth_token", authData.token);
+          console.log("🔐 Token stored in parent window");
+          
+          // Redirect parent window
+          window.opener.location.href = "/subscribe";
+          console.log("🔐 Parent window redirected");
+          
+          // Close popup
+          setTimeout(() => {
+            console.log("🔐 Closing popup window");
+            window.close();
+          }, 1000);
         } catch (error) {
-          console.log("🔐 Failed to send message to parent:", error);
+          console.log("🔐 Failed to redirect parent window:", error);
+          // Fallback: redirect current window
+          window.location.href = "/subscribe";
         }
-        
-        console.log("🔐 Waiting 2 seconds before closing popup...");
-        setTimeout(() => {
-          console.log("🔐 Closing popup window");
-          window.close();
-        }, 2000);
       } else {
         // Fallback for direct navigation
         console.log("🔐 No opener window, redirecting directly");
-        console.log("🔐 Waiting 3 seconds before redirect...");
-        setTimeout(() => {
-          if (authData.user.subscriptionStatus === "active") {
-            window.location.href = "/dashboard";
-          } else {
-            window.location.href = "/subscribe";
-          }
-        }, 3000);
+        window.location.href = "/subscribe";
       }
       return;
     }
