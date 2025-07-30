@@ -404,7 +404,7 @@ const createAnimation = async () => {
     // Step 2: Call Flask API
     animationProcessingMessage.value = 'AI model analyzing character...';
     
-    const response = await fetch('http://localhost:5000/api/animate', {
+    const response = await fetch('/animation/api/animate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
