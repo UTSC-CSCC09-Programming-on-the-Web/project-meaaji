@@ -34,7 +34,7 @@ const storybookModerationQueueEvents = new QueueEvents("storybookModeration", { 
 });
 
 const upload = multer({
-  dest: path.join(import.meta.dirname, "uploads/"),
+  dest: path.join(__dirname, "uploads/"),
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
