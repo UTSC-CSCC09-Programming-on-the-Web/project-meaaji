@@ -43,8 +43,8 @@ const PORT = process.env.PORT || 3000;
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const MAX_PAGES = 15;
 
-// Load env from project root
-dotenv.config({ path: path.join(import.meta.dirname, "../.env") });
+// Environment variables are passed directly from Docker Compose
+// No need to load .env file in container
 
 
 const __filename = fileURLToPath(import.meta.url);
