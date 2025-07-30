@@ -267,6 +267,16 @@ app.get("/api", (req, res) => {
 
 // --- API Endpoints ---
 
+// Debug route - test if server is loading routes
+app.get("/debug", (req, res) => {
+  console.log("🔍 Debug route hit");
+  res.json({ 
+    message: "Debug route working!",
+    routes: ["/auth/test", "/auth/google", "/auth/callback"],
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Test route
 app.get("/auth/test", (req, res) => {
   console.log("🧪 Test route hit");
@@ -275,6 +285,7 @@ app.get("/auth/test", (req, res) => {
 
 // 1. Start Google OAuth
 app.get("/auth/google", (req, res) => {
+  console.log("🔐 Google OAuth route hit");
   const { isSignup } = req.query;
   const googleAuthURL = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   googleAuthURL.searchParams.append("client_id", GOOGLE_CLIENT_ID);
@@ -896,6 +907,7 @@ const startServer = async () => {
         `📊 Health check available at: http://localhost:${PORT}/api/health`,
       );
       console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
+      console.log("🔐 Auth routes registered: /auth/google, /auth/callback, /auth/test");
       if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
         console.warn("⚠️  Warning: Google OAuth credentials not configured");
       }
