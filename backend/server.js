@@ -914,6 +914,17 @@ const startServer = async () => {
     await pool.query("SELECT 1");
     console.log("✓ Database connection successful");
 
+    // Run migrations to ensure database is properly initialized
+    console.log("Running database migrations...");
+    try {
+      const { runMigrations } = await import('./migrations/run-migrations.js');
+      await runMigrations();
+      console.log("✓ Database migrations completed successfully");
+    } catch (migrationError) {
+      console.error("⚠️  Migration warning (continuing):", migrationError.message);
+      // Continue even if migrations fail (they might already be run)
+    }
+
     app.listen(PORT, () => {
       console.log(`🚀 Draw2StoryPlay server running on port ${PORT}`);
       console.log(

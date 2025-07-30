@@ -9,6 +9,7 @@
     "dev": "nodemon server.js",
     "test": "jest",
     "migrate": "node migrations/run-migrations.js",
+    "migrate:reset": "node migrations/reset-database.js",
     "seed": "node migrations/seed-data.js"
   },
   "keywords": [
