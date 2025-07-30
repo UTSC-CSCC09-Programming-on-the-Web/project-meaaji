@@ -396,27 +396,58 @@ app.get("/auth/callback", async (req, res) => {
       <body>
         <script>
           console.log('🔐 OAuth callback: Sending success message');
+          
+          // Try multiple approaches to send the message
+          const message = {
+            type: 'OAUTH_SUCCESS',
+            payload: {
+              success: true,
+              user: {
+                id: '${user.id}',
+                email: '${user.email}',
+                name: '${user.display_name}',
+                picture: '${user.profile_picture_url}',
+                subscriptionStatus: '${user.subscription_status}',
+                isNewUser: ${isNewUser}
+              },
+              token: '${token}',
+              isSignup: ${state === 'signup'}
+            }
+          };
+
+          // Method 1: Try with wildcard origin
           try {
-            window.opener.postMessage({
-              type: 'OAUTH_SUCCESS',
-              payload: {
-                success: true,
-                user: {
-                  id: '${user.id}',
-                  email: '${user.email}',
-                  name: '${user.display_name}',
-                  picture: '${user.profile_picture_url}',
-                  subscriptionStatus: '${user.subscription_status}',
-                  isNewUser: ${isNewUser}
-                },
-                token: '${token}',
-                isSignup: ${state === 'signup'}
-              }
-            }, '*');
-            console.log('🔐 OAuth callback: Message sent successfully');
+            window.opener.postMessage(message, '*');
+            console.log('🔐 OAuth callback: Message sent with wildcard origin');
           } catch (error) {
-            console.error('🔐 OAuth callback: Error sending message:', error);
+            console.error('🔐 OAuth callback: Error with wildcard origin:', error);
           }
+
+          // Method 2: Try with specific origin
+          try {
+            window.opener.postMessage(message, '${process.env.FRONTEND_URL}');
+            console.log('🔐 OAuth callback: Message sent with specific origin');
+          } catch (error) {
+            console.error('🔐 OAuth callback: Error with specific origin:', error);
+          }
+
+          // Method 3: Try with parent origin
+          try {
+            window.opener.postMessage(message, window.location.origin);
+            console.log('🔐 OAuth callback: Message sent with parent origin');
+          } catch (error) {
+            console.error('🔐 OAuth callback: Error with parent origin:', error);
+          }
+
+          // Store in localStorage as fallback
+          try {
+            localStorage.setItem('oauth_result', JSON.stringify(message));
+            console.log('🔐 OAuth callback: Message stored in localStorage');
+          } catch (error) {
+            console.error('🔐 OAuth callback: Error storing in localStorage:', error);
+          }
+
+          console.log('🔐 OAuth callback: All methods attempted');
         </script>
         <p>Authentication complete! You can close this window.</p>
       </body>

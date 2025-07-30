@@ -75,6 +75,12 @@ export function useAuth() {
         "width=500,height=600,scrollbars=yes,resizable=yes",
       );
 
+      if (!popup) {
+        throw new Error("Popup blocked! Please allow popups for this site.");
+      }
+
+      console.log("🔐 OAuth popup opened, waiting for callback...");
+
       // Listen for OAuth callback
       const handleCallback = (event: MessageEvent) => {
         console.log("🔐 Received message:", event.origin, event.data);
@@ -101,6 +107,21 @@ export function useAuth() {
         if (popup?.closed) {
           clearInterval(checkClosed);
           window.removeEventListener("message", handleCallback);
+          
+          // Check localStorage as fallback
+          try {
+            const oauthResult = localStorage.getItem('oauth_result');
+            if (oauthResult) {
+              console.log("🔐 Found OAuth result in localStorage");
+              const data = JSON.parse(oauthResult);
+              localStorage.removeItem('oauth_result'); // Clean up
+              handleAuthSuccess(data.payload, isSignup);
+              return;
+            }
+          } catch (error) {
+            console.error("🔐 Error checking localStorage:", error);
+          }
+          
           isLoading.value = false;
         }
       }, 1000);
