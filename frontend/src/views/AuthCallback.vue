@@ -8,48 +8,41 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 onMounted(async () => {
   try {
-    const code = route.query.code as string;
-    const state = route.query.state as string;
+    const data = route.query.data as string;
     const error = route.query.error as string;
 
     if (error) {
       throw new Error(error);
     }
 
-    if (!code) {
-      throw new Error("No authorization code received");
+    if (!data) {
+      throw new Error("No auth data received");
     }
 
-    // Exchange code for token
-    const response = await fetch(`${API_BASE_URL}/auth/google/callback`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-      body: JSON.stringify({ code, state }),
-    });
+    // Parse the auth data
+    const authData = JSON.parse(decodeURIComponent(data));
+    console.log("🔐 Auth callback: Received auth data", authData);
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || "Authentication failed");
-    }
-
+    // Store token and user data
+    localStorage.setItem("auth_token", authData.token);
+    
     // Send success message to parent window
     if (window.opener) {
       window.opener.postMessage(
         {
           type: "OAUTH_SUCCESS",
-          payload: data,
+          payload: authData,
         },
-        window.location.origin,
+        "*",
       );
       window.close();
     } else {
       // Fallback for direct navigation
-      localStorage.setItem("auth_token", data.token);
-      window.location.href = "/dashboard";
+      if (authData.user.subscriptionStatus === "active") {
+        window.location.href = "/dashboard";
+      } else {
+        window.location.href = "/subscribe";
+      }
     }
   } catch (error) {
     console.error("OAuth callback error:", error);

@@ -387,6 +387,12 @@ app.get("/auth/callback", async (req, res) => {
   console.log("🔐 OAuth callback URL:", req.url);
   console.log("🔐 OAuth callback headers:", req.headers);
   
+  // Disable helmet for this route to allow inline scripts
+  res.removeHeader('Content-Security-Policy');
+  res.removeHeader('X-Content-Type-Options');
+  res.removeHeader('X-Frame-Options');
+  res.removeHeader('X-XSS-Protection');
+  
 
   try {
     const { code, state } = req.query;
@@ -451,7 +457,7 @@ app.get("/auth/callback", async (req, res) => {
     // Generate JWT
     const token = generateToken(user);
     
-    // Prepare auth data
+    // Store auth data in localStorage via URL parameters
     const authData = {
       success: true,
       user: {
@@ -466,11 +472,12 @@ app.get("/auth/callback", async (req, res) => {
       isSignup: state === 'signup'
     };
     
-    // Redirect to static HTML file with auth data
+    // Redirect to frontend with auth data
     const encodedData = encodeURIComponent(JSON.stringify(authData));
-    const redirectUrl = `/public/oauth-callback.html?authData=${encodedData}`;
+    const frontendUrl = process.env.FRONTEND_URL || 'https://draw2play.xyz';
+    const redirectUrl = `${frontendUrl}/auth/callback?data=${encodedData}`;
     
-    console.log("🔐 Redirecting to OAuth callback HTML");
+    console.log("🔐 Redirecting to frontend with auth data");
     res.redirect(redirectUrl);
     console.log("🔐 OAuth callback redirect sent");
   } catch (error) {
