@@ -51,6 +51,9 @@ const MAX_PAGES = 15;
 // Trust proxy for rate limiting behind nginx
 app.set('trust proxy', 1);
 
+// Serve static files
+app.use('/public', express.static(path.join(__dirname, 'public')));
+
 // Security middleware - configure helmet to allow inline scripts for OAuth callback
 app.use(helmet({
   contentSecurityPolicy: {
@@ -448,46 +451,28 @@ app.get("/auth/callback", async (req, res) => {
     // Generate JWT
     const token = generateToken(user);
     
-    // Send HTML response that posts message to parent window
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Authentication Complete</title>
-      </head>
-      <body>
-        <script>
-          console.log('🔐 OAuth callback: Sending success message');
-          try {
-            window.opener.postMessage({
-              type: 'OAUTH_SUCCESS',
-              payload: {
-                success: true,
-                user: {
-                  id: '${user.id}',
-                  email: '${user.email}',
-                  name: '${user.display_name}',
-                  picture: '${user.profile_picture_url}',
-                  subscriptionStatus: '${user.subscription_status}',
-                  isNewUser: ${isNewUser}
-                },
-                token: '${token}',
-                isSignup: ${state === 'signup'}
-              }
-            }, '*');
-            console.log('🔐 OAuth callback: Message sent successfully');
-          } catch (error) {
-            console.error('🔐 OAuth callback: Error sending message:', error);
-          }
-        </script>
-        <p>Authentication complete! You can close this window.</p>
-      </body>
-      </html>
-    `;
+    // Prepare auth data
+    const authData = {
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.display_name,
+        picture: user.profile_picture_url,
+        subscriptionStatus: user.subscription_status,
+        isNewUser: isNewUser
+      },
+      token: token,
+      isSignup: state === 'signup'
+    };
     
-    console.log("🔐 Sending OAuth callback HTML response");
-    res.send(html);
-    console.log("🔐 OAuth callback HTML response sent");
+    // Redirect to static HTML file with auth data
+    const encodedData = encodeURIComponent(JSON.stringify(authData));
+    const redirectUrl = `/public/oauth-callback.html?authData=${encodedData}`;
+    
+    console.log("🔐 Redirecting to OAuth callback HTML");
+    res.redirect(redirectUrl);
+    console.log("🔐 OAuth callback redirect sent");
   } catch (error) {
     console.error("OAuth callback error:", error);
     const errorHtml = `
