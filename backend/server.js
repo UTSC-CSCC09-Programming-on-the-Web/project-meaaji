@@ -474,9 +474,12 @@ app.get("/auth/callback", async (req, res) => {
     }
     
     // Generate JWT
+    console.log("🔐 Generating JWT for user:", user.id);
     const token = generateToken(user);
+    console.log("🔐 JWT generated successfully");
     
     // Store auth data in localStorage via URL parameters
+    console.log("🔐 Creating auth data object");
     const authData = {
       success: true,
       user: {
