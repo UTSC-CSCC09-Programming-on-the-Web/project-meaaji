@@ -13,6 +13,9 @@
 
 **DEPLOYED AT** - https://draw2play.xyz/dashboard\
 >
+**DEMO VIDEO** - https://youtu.be/VdPCRcsOttc
+>
+
 
 **Draw2StoryPlay** is a creative web application that allows children to draw simple sketches and generate fully animated **storybooks** or interactive **2D games** from their creations using AI.
 
