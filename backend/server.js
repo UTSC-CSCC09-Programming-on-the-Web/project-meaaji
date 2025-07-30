@@ -283,7 +283,127 @@ app.get("/auth/google", (req, res) => {
   res.json({ authUrl: googleAuthURL.toString() });
 });
 
-// 2. Google OAuth callback
+// 2. Google OAuth callback (GET - for OAuth redirect)
+app.get("/auth/callback", async (req, res) => {
+  try {
+    const { code, state } = req.query;
+    if (!code)
+      return res.status(400).json({ error: "Authorization code is required" });
+    
+    // Exchange code for token
+    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: GOOGLE_CLIENT_ID,
+        client_secret: GOOGLE_CLIENT_SECRET,
+        code,
+        grant_type: "authorization_code",
+        redirect_uri: REDIRECT_URI,
+      }),
+    });
+    const tokenData = await tokenResponse.json();
+    if (tokenData.error)
+      return res
+        .status(400)
+        .json({
+          error: tokenData.error_description || "Token exchange failed",
+        });
+    
+    // Get user info
+    const userResponse = await fetch(
+      "https://www.googleapis.com/oauth2/v2/userinfo",
+      {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      },
+    );
+    const userData = await userResponse.json();
+    if (userData.error)
+      return res
+        .status(400)
+        .json({ error: "Failed to fetch user information" });
+    
+    // Upsert user in PostgreSQL
+    let user = await User.findByGoogleId(userData.id);
+    const isNewUser = !user;
+    if (!user) {
+      user = await User.create({
+        google_id: userData.id,
+        email: userData.email,
+        display_name: userData.name,
+        first_name: userData.given_name,
+        last_name: userData.family_name,
+        profile_picture_url: userData.picture,
+      });
+    } else {
+      await User.updateProfile(user.id, {
+        display_name: userData.name,
+        first_name: userData.given_name,
+        last_name: userData.family_name,
+        profile_picture_url: userData.picture,
+      });
+      user = await User.findById(user.id);
+    }
+    
+    // Generate JWT
+    const token = generateToken(user);
+    
+    // Send HTML response that posts message to parent window
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Authentication Complete</title>
+      </head>
+      <body>
+        <script>
+          window.opener.postMessage({
+            type: 'OAUTH_SUCCESS',
+            payload: {
+              success: true,
+              user: {
+                id: '${user.id}',
+                email: '${user.email}',
+                name: '${user.display_name}',
+                picture: '${user.profile_picture_url}',
+                subscriptionStatus: '${user.subscription_status}',
+                isNewUser: ${isNewUser}
+              },
+              token: '${token}',
+              isSignup: ${state === 'signup'}
+            }
+          }, '${process.env.FRONTEND_URL}');
+        </script>
+        <p>Authentication complete! You can close this window.</p>
+      </body>
+      </html>
+    `;
+    
+    res.send(html);
+  } catch (error) {
+    console.error("OAuth callback error:", error);
+    const errorHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Authentication Error</title>
+      </head>
+      <body>
+        <script>
+          window.opener.postMessage({
+            type: 'OAUTH_ERROR',
+            error: 'Authentication failed'
+          }, '${process.env.FRONTEND_URL}');
+        </script>
+        <p>Authentication failed. Please try again.</p>
+      </body>
+      </html>
+    `;
+    res.send(errorHtml);
+  }
+});
+
+// 3. Google OAuth callback (POST - for API calls)
 app.post("/auth/google/callback", async (req, res) => {
   try {
     const { code, state } = req.body;
