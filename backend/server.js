@@ -51,8 +51,17 @@ const MAX_PAGES = 15;
 // Trust proxy for rate limiting behind nginx
 app.set('trust proxy', 1);
 
-// Security middleware
-app.use(helmet());
+// Security middleware - configure helmet to allow inline scripts for OAuth callback
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+}));
 
 // CORS configuration
 app.use(
@@ -375,8 +384,7 @@ app.get("/auth/callback", async (req, res) => {
   console.log("🔐 OAuth callback URL:", req.url);
   console.log("🔐 OAuth callback headers:", req.headers);
   
-  // Disable CSP for OAuth callback to allow inline scripts
-  res.setHeader('Content-Security-Policy', "script-src 'self' 'unsafe-inline'");
+
   try {
     const { code, state } = req.query;
     if (!code)
