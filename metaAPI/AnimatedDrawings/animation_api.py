@@ -147,10 +147,9 @@ def create_animation():
             frame_count = 339  # Use default value
         
         # 6. Return result
-        # Use environment variable for host or default to localhost
-        host = os.environ.get('ANIMATION_API_HOST', 'localhost')
-        port = os.environ.get('ANIMATION_API_PORT', '5000')
-        video_url = f"http://{host}:{port}/api/download/{unique_id}/video.gif"
+        # Use nginx proxy URL for frontend access
+        # The frontend should access through /animation/api/download/... not direct container
+        video_url = f"/animation/api/download/{unique_id}/video.gif"
         
         result_data = {
             'status': 'success',
